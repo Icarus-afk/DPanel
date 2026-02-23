@@ -1,0 +1,122 @@
+/* Modern Theme for DPanel - Clean Dark */
+
+:root {
+  /* Dark Color Palette */
+  --dark-base: #0a0a0a;
+  --dark-surface: #111111;
+  --dark-surface-2: #1a1a1a;
+  --dark-surface-3: #222222;
+  
+  /* Accent Colors */
+  --accent-primary: #ffffff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dark-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--dark-surface-3);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--dark-surface);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}
+
+/* Loading Spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--dark-surface-2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn var(--transition-base);
+}
+
+/* Skeleton Shimmer */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #1a1a1a 0%, #222 50%, #1a1a1a 100%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Card Hover Effect */
+.card-hover {
+  transition: transform var(--transition-base), background var(--transition-base);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  background: var(--dark-surface-2);
+}
+
+/* Status Dot */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.status-dot.active {
+  background: var(--success);
+}
+
+.status-dot.inactive {
+  background: var(--error);
+}
+
+/* Table Row Hover */
+.table-row-hover {
+  transition: background var(--transition-fast);
+}
+
+.table-row-hover:hover {
+  background: var(--dark-surface-2);
+}
