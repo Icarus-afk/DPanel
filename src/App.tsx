@@ -39,7 +39,6 @@ function AppContent() {
 
   const handleDisconnect = () => {
     disconnect();
-    setCurrentView('dashboard');
   };
 
   if (isLoading) {

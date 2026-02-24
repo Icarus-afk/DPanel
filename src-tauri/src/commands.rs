@@ -237,10 +237,11 @@ pub async fn get_system_metrics(state: State<'_, AppState>) -> Result<SystemMetr
     let proc_output = proc_handle.join().unwrap().map_err(|e| e.message)?;
     let process_count: u32 = proc_output.trim().parse().unwrap_or(0);
 
-    // Fetch network stats
+    // Fetch network stats - use more robust parsing
     let client_clone: Arc<SshClient> = Arc::clone(client);
     let network_handle = std::thread::spawn(move || {
-        client_clone.execute_command("cat /proc/net/dev | tail -n +3 | head -n 1 | awk '{print $2,$3,$10,$11}'")
+        // Parse /proc/net/dev more reliably - get the primary interface
+        client_clone.execute_command("cat /proc/net/dev | grep -E '^\\s*(eth|en|wl)' | head -n 1 | awk -F: '{print $2}' | awk '{print $1,$2,$9,$10}'")
     });
 
     let network_output = network_handle.join().unwrap().map_err(|e| e.message)?;

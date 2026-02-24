@@ -5,6 +5,7 @@ import { NavigationProgress } from '@mantine/nprogress';
 import { Notifications } from '@mantine/notifications';
 import App from './App';
 import { ToastProvider } from './context/ToastContext';
+import './index.css';
 import '@mantine/core/styles.css';
 import '@mantine/nprogress/styles.css';
 import '@mantine/notifications/styles.css';

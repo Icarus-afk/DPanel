@@ -51,6 +51,9 @@ import {
   IconWorld,
 } from '@tabler/icons-react';
 
+// Alias for Box icon
+const BoxIcon = IconBox;
+
 const DockerEnhanced = memo(function DockerEnhanced() {
   const { isConnected } = useServer();
   const { addToast } = useToast();
@@ -566,42 +569,56 @@ const DockerEnhanced = memo(function DockerEnhanced() {
         onClose={() => setShowDetailsModal(false)}
         title={
           <Group gap="sm">
-            <ThemeIcon variant="light" color="blue" size="md">
-              <IconBrandDocker size={18} />
-            </ThemeIcon>
-            <Text fw={600}>Container: {selectedContainer?.name}</Text>
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+              <BoxIcon size={18} className="text-blue-400" />
+            </div>
+            <Text fw={600} className="text-white">Container: {selectedContainer?.name}</Text>
           </Group>
         }
         size="xl"
+        centered
+        styles={{
+          content: { backgroundColor: '#0a0a0a', border: '1px solid #262626' },
+          header: { borderBottom: '1px solid #262626' },
+          body: { backgroundColor: '#0a0a0a' },
+        }}
       >
         {selectedContainer && (
           <Stack gap="md">
             {/* Quick Info */}
             <SimpleGrid cols={2}>
-              <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-7)">
-                <Text size="xs" c="dimmed">Status</Text>
+              <Paper withBorder p="md" radius="md" className="bg-neutral-900 border-neutral-800">
+                <Text size="xs" className="text-neutral-500">Status</Text>
                 <Group gap="xs">
-                  <Badge color={getStatusColor(selectedContainer.state)} variant="light">
+                  <Badge className={`${
+                    selectedContainer.state.toLowerCase().includes('running')
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                      : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/30'
+                  } border`}>
                     {selectedContainer.state}
                   </Badge>
                 </Group>
               </Paper>
-              <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-7)">
-                <Text size="xs" c="dimmed">Image</Text>
-                <Text fw={600} size="sm">{selectedContainer.image}</Text>
+              <Paper withBorder p="md" radius="md" className="bg-neutral-900 border-neutral-800">
+                <Text size="xs" className="text-neutral-500">Image</Text>
+                <Text fw={600} size="sm" className="text-white font-mono">
+                  {selectedContainer.image.replace(/@sha256:[a-f0-9]+$/, '').replace(/^[^/]+\//, '')}
+                </Text>
               </Paper>
-              <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-7)">
-                <Text size="xs" c="dimmed">Created</Text>
-                <Text fw={600} size="sm">{new Date(selectedContainer.created).toLocaleString()}</Text>
+              <Paper withBorder p="md" radius="md" className="bg-neutral-900 border-neutral-800">
+                <Text size="xs" className="text-neutral-500">Created</Text>
+                <Text fw={600} size="sm" className="text-white">
+                  {new Date(selectedContainer.created).toLocaleDateString()} {new Date(selectedContainer.created).toLocaleTimeString()}
+                </Text>
               </Paper>
-              <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-7)">
-                <Text size="xs" c="dimmed">Memory Limit</Text>
-                <Text fw={600} size="sm">{selectedContainer.memory_limit || 'Unlimited'}</Text>
+              <Paper withBorder p="md" radius="md" className="bg-neutral-900 border-neutral-800">
+                <Text size="xs" className="text-neutral-500">Memory Limit</Text>
+                <Text fw={600} size="sm" className="text-white">{selectedContainer.memory_limit || 'Unlimited'}</Text>
               </Paper>
             </SimpleGrid>
 
             <Tabs defaultValue="env">
-              <Tabs.List>
+              <Tabs.List className="bg-neutral-900 border-neutral-800">
                 <Tabs.Tab value="env" leftSection={<IconVariable size={16} />}>
                   Environment
                 </Tabs.Tab>
@@ -621,13 +638,14 @@ const DockerEnhanced = memo(function DockerEnhanced() {
 
               <Tabs.Panel value="env" pt="md">
                 <Group justify="space-between" mb="sm">
-                  <Text size="sm" fw={600}>Environment Variables</Text>
+                  <Text size="sm" fw={600} className="text-white">Environment Variables</Text>
                   <Button
                     size="compact-xs"
                     variant={showSecrets ? 'filled' : 'outline'}
                     color={showSecrets ? 'red' : 'blue'}
                     onClick={() => setShowSecrets(!showSecrets)}
                     leftSection={showSecrets ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+                    className={showSecrets ? 'bg-red-600 hover:bg-red-500' : 'border-neutral-700 text-neutral-300 hover:bg-neutral-800'}
                   >
                     {showSecrets ? 'Hide Secrets' : 'Show Secrets'}
                   </Button>
@@ -636,14 +654,14 @@ const DockerEnhanced = memo(function DockerEnhanced() {
                   <ScrollArea.Autosize mah={300}>
                     <Stack gap="xs">
                       {selectedContainer.env_vars.map((env, idx) => (
-                        <Paper key={idx} withBorder p="xs" radius="md" bg="var(--mantine-color-dark-8)">
-                          <Code block>{env}</Code>
+                        <Paper key={idx} withBorder p="xs" radius="md" className="bg-neutral-900 border-neutral-800">
+                          <Code block className="bg-neutral-800 text-neutral-300 border-neutral-700">{env}</Code>
                         </Paper>
                       ))}
                     </Stack>
                   </ScrollArea.Autosize>
                 ) : (
-                  <Alert icon={<IconVariable size={18} />} color="blue">
+                  <Alert icon={<IconVariable size={18} />} color="blue" className="bg-blue-900/20 border-blue-900/50">
                     Environment variables containing PASSWORD, SECRET, KEY, or TOKEN are hidden.
                     Click "Show Secrets" to reveal.
                   </Alert>
@@ -652,17 +670,17 @@ const DockerEnhanced = memo(function DockerEnhanced() {
 
               <Tabs.Panel value="ports" pt="md">
                 {selectedContainer.ports.length === 0 ? (
-                  <Text c="dimmed">No port mappings</Text>
+                  <Text className="text-neutral-500">No port mappings</Text>
                 ) : (
                   <Stack gap="xs">
                     {selectedContainer.ports.map((port, idx) => (
-                      <Group key={idx} justify="space-between">
-                        <Text size="sm">
-                          <strong>{port.host_ip}:{port.host_port}</strong> → <strong>{port.container_port}</strong>/{port.protocol}
+                      <Group key={idx} justify="space-between" className="p-3 bg-neutral-900 rounded-lg border border-neutral-800">
+                        <Text size="sm" className="text-white">
+                          <strong className="text-blue-400">{port.host_ip}:{port.host_port}</strong> → <strong className="text-emerald-400">{port.container_port}</strong>/{port.protocol}
                         </Text>
                         <CopyButton value={`${port.host_ip}:${port.host_port}`}>
                           {({ copy: copyFn }) => (
-                            <ActionIcon variant="subtle" onClick={copyFn}>
+                            <ActionIcon variant="subtle" onClick={copyFn} className="text-neutral-400 hover:bg-neutral-800">
                               <IconCopy size={16} />
                             </ActionIcon>
                           )}
@@ -675,15 +693,15 @@ const DockerEnhanced = memo(function DockerEnhanced() {
 
               <Tabs.Panel value="volumes" pt="md">
                 {selectedContainer.volumes.length === 0 ? (
-                  <Text c="dimmed">No volume mounts</Text>
+                  <Text className="text-neutral-500">No volume mounts</Text>
                 ) : (
                   <Stack gap="xs">
                     {selectedContainer.volumes.map((vol, idx) => (
-                      <Paper key={idx} withBorder p="xs" radius="md" bg="var(--mantine-color-dark-8)">
-                        <Text size="sm">
-                          <strong>{vol.source}</strong> → <strong>{vol.destination}</strong>
+                      <Paper key={idx} withBorder p="xs" radius="md" className="bg-neutral-900 border-neutral-800">
+                        <Text size="sm" className="text-white">
+                          <strong className="text-blue-400">{vol.source}</strong> → <strong className="text-emerald-400">{vol.destination}</strong>
                         </Text>
-                        <Text size="xs" c="dimmed">Mode: {vol.mode}</Text>
+                        <Text size="xs" className="text-neutral-500">Mode: {vol.mode}</Text>
                       </Paper>
                     ))}
                   </Stack>
@@ -692,11 +710,11 @@ const DockerEnhanced = memo(function DockerEnhanced() {
 
               <Tabs.Panel value="networks" pt="md">
                 {selectedContainer.networks.length === 0 ? (
-                  <Text c="dimmed">No networks</Text>
+                  <Text className="text-neutral-500">No networks</Text>
                 ) : (
                   <Stack gap="xs">
                     {selectedContainer.networks.map((net, idx) => (
-                      <Badge key={idx} variant="light" size="lg">
+                      <Badge key={idx} className="bg-violet-500/10 text-violet-400 border border-violet-500/30" size="lg">
                         {net}
                       </Badge>
                     ))}
@@ -706,13 +724,13 @@ const DockerEnhanced = memo(function DockerEnhanced() {
 
               <Tabs.Panel value="labels" pt="md">
                 {selectedContainer.labels.length === 0 ? (
-                  <Text c="dimmed">No labels</Text>
+                  <Text className="text-neutral-500">No labels</Text>
                 ) : (
                   <Stack gap="xs">
                     {selectedContainer.labels.map((label, idx) => (
-                      <Group key={idx} justify="space-between">
-                        <Text size="sm" c="dimmed">{label.key}</Text>
-                        <Code>{label.value}</Code>
+                      <Group key={idx} justify="space-between" className="p-3 bg-neutral-900 rounded-lg border border-neutral-800">
+                        <Text size="sm" className="text-neutral-500">{label.key}</Text>
+                        <Code className="bg-neutral-800 text-neutral-300 border-neutral-700">{label.value}</Code>
                       </Group>
                     ))}
                   </Stack>

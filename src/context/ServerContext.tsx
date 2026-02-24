@@ -13,6 +13,7 @@ interface ServerContextType {
   setCachedMetrics: (metrics: SystemMetrics | null) => void;
   setCachedContainers: (containers: DockerContainer[] | null) => void;
   invalidateCache: () => void;
+  disconnect: () => void;
 }
 
 const ServerContext = createContext<ServerContextType | undefined>(undefined);
@@ -32,15 +33,21 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     setContainersTimestamp(null);
   };
 
+  const disconnect = () => {
+    setActiveServer(null);
+    setIsConnected(false);
+    invalidateCache();
+  };
+
   return (
-    <ServerContext.Provider value={{ 
-      activeServer, 
-      isConnected, 
+    <ServerContext.Provider value={{
+      activeServer,
+      isConnected,
       cachedMetrics,
       cachedContainers,
       metricsTimestamp,
       containersTimestamp,
-      setActiveServer, 
+      setActiveServer,
       setIsConnected,
       setCachedMetrics: (metrics) => {
         setCachedMetrics(metrics);
@@ -51,6 +58,7 @@ export function ServerProvider({ children }: { children: ReactNode }) {
         if (containers) setContainersTimestamp(Date.now());
       },
       invalidateCache,
+      disconnect,
     }}>
       {children}
     </ServerContext.Provider>

@@ -61,6 +61,7 @@ export interface DockerContainer {
   cpu_percent: number;
   memory_usage: number;
   memory_limit: number;
+  volumes?: string[];
 }
 
 export interface ServiceInfo {

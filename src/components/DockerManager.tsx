@@ -4,37 +4,13 @@ import { useServer } from '../context/ServerContext';
 import { useToast } from '../context/ToastContext';
 import { DockerContainer } from '../types';
 import {
-  Paper,
-  Text,
-  Group,
-  Table,
-  ActionIcon,
-  Badge,
-  Title,
-  Button,
-  Modal,
-  Stack,
-  ScrollArea,
-  Grid,
-  Card,
-  ThemeIcon,
-  Box,
-  Progress,
-  Divider,
-  Tooltip,
-  SimpleGrid,
+  Paper, Text, Group, Table, ActionIcon, Badge, Title, Button, Modal, Stack,
+  ScrollArea, Grid, Card, ThemeIcon, Box, Progress, Divider, Tooltip, SimpleGrid,
 } from '@mantine/core';
 import {
-  IconRefresh,
-  IconPlayerPlay,
-  IconPlayerPause,
-  IconPlayerStop,
-  IconFileText,
-  IconBrandDocker,
-  IconClock,
-  IconCpu,
-  IconChartBar,
-} from '@tabler/icons-react';
+  RefreshCw, Play, Pause, Square, FileText, Box as BoxIcon, Clock, Cpu,
+  BarChart3, HardDrive, Activity, Terminal, MoreVertical, FolderOpen,
+} from 'lucide-react';
 
 export default function DockerManager() {
   const { cachedContainers, setCachedContainers } = useServer();
@@ -61,7 +37,6 @@ export default function DockerManager() {
 
   useEffect(() => {
     fetchContainers();
-    // Optimized: fetch every 8 seconds instead of 3
     const interval = setInterval(fetchContainers, 8000);
     return () => clearInterval(interval);
   }, [fetchContainers]);
@@ -90,72 +65,53 @@ export default function DockerManager() {
     }
   }, []);
 
-  const truncateName = (name: string, maxLength = 20) => {
-    if (name.length <= maxLength) return name;
-    return `${name.substring(0, maxLength)}...`;
-  };
-
-  const truncateImage = (image: string, maxLength = 25) => {
-    // Remove registry prefix if present
-    const cleanImage = image.replace(/^[^/]+\//, '');
-    if (cleanImage.length <= maxLength) return cleanImage;
-    const parts = cleanImage.split(':');
-    if (parts[0].length > maxLength) {
-      return `${parts[0].substring(0, maxLength)}...${parts[1] ? ':' + parts[1] : ''}`;
-    }
+  const formatImageName = (image: string) => {
+    // Remove SHA256 hash and registry prefix
+    const cleanImage = image.replace(/^[^/]+\//, '') // Remove registry prefix
+      .replace(/@sha256:[a-f0-9]+$/, '') // Remove @sha256:hash
+      .replace(/sha256:[a-f0-9]+$/, ''); // Remove sha256:hash
     return cleanImage;
-  };
-
-  const getStatusColor = (state: string) => {
-    const s = state.toLowerCase();
-    if (s.includes('running')) return 'green';
-    if (s.includes('paused')) return 'yellow';
-    if (s.includes('exited') || s.includes('dead')) return 'red';
-    return 'gray';
-  };
-
-  const getStatusIcon = (state: string) => {
-    const s = state.toLowerCase();
-    if (s.includes('running')) return <IconPlayerPlay size={12} />;
-    if (s.includes('paused')) return <IconPlayerPause size={12} />;
-    return <IconPlayerStop size={12} />;
   };
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  // Memoized computed values
   const containers = useMemo(() => cachedContainers || [], [cachedContainers]);
-  const runningCount = useMemo(() => 
-    containers.filter(c => c.state.toLowerCase().includes('running')).length, 
+  const runningCount = useMemo(() =>
+    containers.filter(c => c.state.toLowerCase().includes('running')).length,
+    [containers]
+  );
+  const stoppedCount = useMemo(() =>
+    containers.filter(c => !c.state.toLowerCase().includes('running')).length,
     [containers]
   );
 
   return (
-    <Stack gap="md">
+    <div className="space-y-4">
       {/* Header */}
-      <Group justify="space-between">
+      <Group justify="space-between" className="mb-2">
         <Group gap="sm">
-          <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
-            <IconBrandDocker size={20} />
-          </ThemeIcon>
+          <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+            <BoxIcon size={20} className="text-blue-400" />
+          </div>
           <Stack gap={0}>
-            <Title order={3}>Docker Containers</Title>
-            <Text size="xs" c="dimmed">
-              {runningCount}/{containers.length} containers running
+            <Title order={3} className="text-white text-lg font-semibold">Docker Containers</Title>
+            <Text size="xs" className="text-neutral-500">
+              {runningCount} running • {stoppedCount} stopped
             </Text>
           </Stack>
         </Group>
         <Group gap="xs">
           <Button
-            variant="subtle"
+            variant="outline"
             size="compact-sm"
             onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+            className="border-neutral-700 text-neutral-300 hover:bg-neutral-800"
           >
             {viewMode === 'table' ? 'Card View' : 'Table View'}
           </Button>
@@ -164,33 +120,33 @@ export default function DockerManager() {
             size="compact-sm"
             onClick={fetchContainers}
             loading={loading}
-            leftSection={<IconRefresh size={16} />}
+            className="text-blue-400 hover:bg-blue-500/10"
           >
-            Refresh
+            <RefreshCw size={16} />
           </Button>
         </Group>
       </Group>
 
       {error && (
-        <Paper withBorder p="md" radius="md" bg="var(--mantine-color-red-9)">
+        <Card className="bg-neutral-900 border border-red-900/50 p-4">
           <Group gap="sm">
-            <IconRefresh size={18} />
-            <Text size="sm" c="red.2">{error}</Text>
+            <Activity size={18} className="text-red-400" />
+            <Text size="sm" className="text-red-400">{error}</Text>
           </Group>
-        </Paper>
+        </Card>
       )}
 
       {containers.length === 0 ? (
-        <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-dark-6)">
+        <Card className="bg-neutral-900 border border-neutral-800 p-8">
           <Stack align="center" gap="md">
-            <ThemeIcon size="xl" variant="light" color="gray">
-              <IconBrandDocker size={32} />
-            </ThemeIcon>
-            <Text c="dimmed">No Docker containers found</Text>
+            <div className="w-16 h-16 rounded-xl bg-neutral-800 flex items-center justify-center">
+              <BoxIcon size={32} className="text-neutral-500" />
+            </div>
+            <Text className="text-neutral-400">No Docker containers found</Text>
           </Stack>
-        </Paper>
+        </Card>
       ) : viewMode === 'cards' ? (
-        /* Card View - Using memoized ContainerCard component */
+        /* Card View */}
         <Grid gutter="md">
           {containers.map((container) => (
             <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} key={container.id}>
@@ -204,54 +160,64 @@ export default function DockerManager() {
           ))}
         </Grid>
       ) : (
-        /* Table View */
-        <Paper withBorder radius="md" bg="var(--mantine-color-dark-6)">
+        /* Table View */}
+        <Card className="bg-neutral-900 border border-neutral-800 p-0 overflow-hidden">
           <ScrollArea>
             <Table>
               <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Name</Table.Th>
-                  <Table.Th>Image</Table.Th>
-                  <Table.Th>Status</Table.Th>
-                  <Table.Th>CPU</Table.Th>
-                  <Table.Th>Memory</Table.Th>
-                  <Table.Th>Actions</Table.Th>
+                <Table.Tr className="border-neutral-800">
+                  <Table.Th className="text-neutral-400">Name</Table.Th>
+                  <Table.Th className="text-neutral-400">Image</Table.Th>
+                  <Table.Th className="text-neutral-400">Status</Table.Th>
+                  <Table.Th className="text-neutral-400">CPU</Table.Th>
+                  <Table.Th className="text-neutral-400">Memory</Table.Th>
+                  <Table.Th className="text-neutral-400">Actions</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {containers.map((container) => (
-                  <Table.Tr key={container.id}>
+                  <Table.Tr key={container.id} className="border-neutral-800 hover:bg-neutral-800/50">
                     <Table.Td>
                       <Tooltip label={container.name}>
-                        <Text fw={500} style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {truncateName(container.name)}
+                        <Text fw={500} className="text-white truncate max-w-[150px]">
+                          {container.name}
                         </Text>
                       </Tooltip>
                     </Table.Td>
                     <Table.Td>
                       <Tooltip label={container.image}>
-                        <Text c="dimmed" style={{ fontFamily: 'monospace', fontSize: 12, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {truncateImage(container.image)}
+                        <Text className="text-neutral-500 font-mono text-xs truncate max-w-[150px]">
+                          {formatImageName(container.image)}
                         </Text>
                       </Tooltip>
                     </Table.Td>
                     <Table.Td>
                       <Badge
-                        color={getStatusColor(container.state)}
-                        variant="light"
-                        leftSection={getStatusIcon(container.state)}
+                        className={`${
+                          container.state.toLowerCase().includes('running')
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            : container.state.toLowerCase().includes('paused')
+                            ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                            : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/30'
+                        } border`}
                       >
-                        {container.status}
+                        {container.state}
                       </Badge>
                     </Table.Td>
                     <Table.Td>
                       <Group gap="xs">
-                        <Text>{container.cpu_percent.toFixed(1)}%</Text>
-                        <Progress value={container.cpu_percent} size="xs" color="blue" w={60} />
+                        <Text className="text-white text-sm">{container.cpu_percent.toFixed(1)}%</Text>
+                        <Progress
+                          value={container.cpu_percent}
+                          size="xs"
+                          className="bg-neutral-800"
+                          style={{ backgroundColor: '#262626' }}
+                          color={container.cpu_percent > 80 ? 'red' : container.cpu_percent > 50 ? 'yellow' : 'blue'}
+                        />
                       </Group>
                     </Table.Td>
                     <Table.Td>
-                      <Text>{formatBytes(container.memory_usage)}</Text>
+                      <Text className="text-white text-sm">{formatBytes(container.memory_usage)}</Text>
                     </Table.Td>
                     <Table.Td>
                       <Group gap="xs">
@@ -260,19 +226,19 @@ export default function DockerManager() {
                             <Tooltip label="Restart">
                               <ActionIcon
                                 variant="subtle"
-                                color="blue"
                                 onClick={() => handleContainerAction('restart', container.name)}
+                                className="text-blue-400 hover:bg-blue-500/10"
                               >
-                                <IconRefresh size={16} />
+                                <RefreshCw size={16} />
                               </ActionIcon>
                             </Tooltip>
                             <Tooltip label="Stop">
                               <ActionIcon
                                 variant="subtle"
-                                color="red"
                                 onClick={() => handleContainerAction('stop', container.name)}
+                                className="text-red-400 hover:bg-red-500/10"
                               >
-                                <IconPlayerStop size={16} />
+                                <Square size={16} />
                               </ActionIcon>
                             </Tooltip>
                           </>
@@ -280,20 +246,20 @@ export default function DockerManager() {
                           <Tooltip label="Start">
                             <ActionIcon
                               variant="subtle"
-                              color="green"
                               onClick={() => handleContainerAction('start', container.name)}
+                              className="text-emerald-400 hover:bg-emerald-500/10"
                             >
-                              <IconPlayerPlay size={16} />
+                              <Play size={16} />
                             </ActionIcon>
                           </Tooltip>
                         )}
                         <Tooltip label="View Logs">
                           <ActionIcon
                             variant="subtle"
-                            color="gray"
                             onClick={() => handleViewLogs(container.name)}
+                            className="text-neutral-400 hover:bg-neutral-800"
                           >
-                            <IconFileText size={16} />
+                            <FileText size={16} />
                           </ActionIcon>
                         </Tooltip>
                       </Group>
@@ -303,7 +269,7 @@ export default function DockerManager() {
               </Table.Tbody>
             </Table>
           </ScrollArea>
-        </Paper>
+        </Card>
       )}
 
       {/* Logs Modal */}
@@ -312,46 +278,46 @@ export default function DockerManager() {
         onClose={() => setShowLogs(false)}
         title={
           <Group gap="sm">
-            <IconFileText size={18} />
-            <Text fw={600}>Logs - {selectedContainer}</Text>
+            <Terminal size={18} className="text-blue-400" />
+            <Text fw={600} className="text-white">Logs - {selectedContainer}</Text>
           </Group>
         }
         size="xl"
         centered
+        styles={{
+          content: { backgroundColor: '#0a0a0a', border: '1px solid #262626' },
+          header: { borderBottom: '1px solid #262626' },
+          body: { backgroundColor: '#0a0a0a' },
+        }}
       >
         <Stack gap="md">
           <Group justify="space-between">
-            <Text size="sm" c="dimmed">Last 200 lines</Text>
+            <Text size="sm" className="text-neutral-500">Last 200 lines</Text>
             <Button
-              variant="subtle"
+              variant="outline"
               size="compact-sm"
               onClick={() => {
                 navigator.clipboard.writeText(logs);
                 addToast('Logs copied to clipboard', 'success');
               }}
+              className="border-neutral-700 text-neutral-300 hover:bg-neutral-800"
             >
               Copy
             </Button>
           </Group>
-          <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-8)">
+          <Paper withBorder p="md" radius="md" className="bg-neutral-900 border-neutral-800">
             <ScrollArea.Autosize mah={500}>
               <Box
                 component="pre"
-                style={{
-                  fontFamily: 'monospace',
-                  fontSize: 11,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-all',
-                  color: 'var(--mantine-color-gray-3)',
-                }}
+                className="font-mono text-xs text-neutral-300 whitespace-pre-wrap break-all"
               >
-                {logs || <Text c="dimmed">No logs available</Text>}
+                {logs || <Text className="text-neutral-500">No logs available</Text>}
               </Box>
             </ScrollArea.Autosize>
           </Paper>
         </Stack>
       </Modal>
-    </Stack>
+    </div>
   );
 }
 
@@ -364,143 +330,161 @@ interface ContainerCardProps {
 }
 
 const ContainerCard = memo(function ContainerCard({ container, onAction, onViewLogs, formatBytes }: ContainerCardProps) {
-  const getStatusColor = (state: string) => {
-    const s = state.toLowerCase();
-    if (s.includes('running')) return 'green';
-    if (s.includes('paused')) return 'yellow';
-    if (s.includes('exited') || s.includes('dead')) return 'red';
-    return 'gray';
-  };
-
-  const getStatusIcon = (state: string) => {
-    const s = state.toLowerCase();
-    if (s.includes('running')) return <IconPlayerPlay size={12} />;
-    if (s.includes('paused')) return <IconPlayerPause size={12} />;
-    return <IconPlayerStop size={12} />;
-  };
-
-  const truncateName = (name: string, maxLength = 20) => {
-    if (name.length <= maxLength) return name;
-    return `${name.substring(0, maxLength)}...`;
-  };
-
-  const truncateImage = (image: string, maxLength = 25) => {
-    const cleanImage = image.replace(/^[^/]+\//, '');
-    if (cleanImage.length <= maxLength) return cleanImage;
-    const parts = cleanImage.split(':');
-    if (parts[0].length > maxLength) {
-      return `${parts[0].substring(0, maxLength)}...${parts[1] ? ':' + parts[1] : ''}`;
-    }
+  const isRunning = container.state.toLowerCase().includes('running');
+  const isPaused = container.state.toLowerCase().includes('paused');
+  
+  const formatImageName = (image: string) => {
+    const cleanImage = image.replace(/^[^/]+\//, '')
+      .replace(/@sha256:[a-f0-9]+$/, '')
+      .replace(/sha256:[a-f0-9]+$/, '');
     return cleanImage;
   };
 
   return (
-    <Card withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+    <Card className="bg-neutral-900 border border-neutral-800 p-4 hover:border-neutral-700 transition-all">
       <Stack gap="sm">
         {/* Header */}
         <Group justify="space-between">
           <Group gap="sm">
-            <ThemeIcon
-              variant="light"
-              color={getStatusColor(container.state)}
-              size="md"
-            >
-              {getStatusIcon(container.state)}
-            </ThemeIcon>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              isRunning ? 'bg-emerald-500/10' : isPaused ? 'bg-yellow-500/10' : 'bg-neutral-500/10'
+            }`}>
+              {isRunning ? (
+                <Play size={18} className="text-emerald-400" />
+              ) : isPaused ? (
+                <Pause size={18} className="text-yellow-400" />
+              ) : (
+                <Square size={18} className="text-neutral-400" />
+              )}
+            </div>
             <Stack gap={0}>
               <Tooltip label={container.name}>
-                <Text fw={600} style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {truncateName(container.name)}
+                <Text fw={600} className="text-white truncate max-w-[150px]">
+                  {container.name}
                 </Text>
               </Tooltip>
               <Tooltip label={container.image}>
-                <Text size="xs" c="dimmed" style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {truncateImage(container.image)}
+                <Text size="xs" className="text-neutral-500 font-mono truncate max-w-[150px]">
+                  {formatImageName(container.image)}
                 </Text>
               </Tooltip>
             </Stack>
           </Group>
           <Badge
-            color={getStatusColor(container.state)}
-            variant={container.state.toLowerCase().includes('running') ? 'light' : 'outline'}
-            size="sm"
+            className={`${
+              isRunning
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                : isPaused
+                ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/30'
+            } border`}
           >
             {container.state}
           </Badge>
         </Group>
 
-        <Divider />
+        <Divider className="border-neutral-800" />
 
         {/* Stats */}
         <SimpleGrid cols={2}>
           <Stack gap={2}>
             <Group gap="xs">
-              <IconCpu size={14} color="var(--mantine-color-blue-4)" />
-              <Text size="xs" c="dimmed">CPU</Text>
+              <Cpu size={14} className="text-blue-400" />
+              <Text size="xs" className="text-neutral-500">CPU</Text>
             </Group>
-            <Text fw={600} size="sm">{container.cpu_percent.toFixed(1)}%</Text>
-            <Progress value={container.cpu_percent} size="xs" color="blue" />
+            <Text fw={600} size="sm" className="text-white">{container.cpu_percent.toFixed(1)}%</Text>
+            <Progress
+              value={container.cpu_percent}
+              size="xs"
+              className="bg-neutral-800"
+              style={{ backgroundColor: '#262626' }}
+              color={container.cpu_percent > 80 ? 'red' : container.cpu_percent > 50 ? 'yellow' : 'blue'}
+            />
           </Stack>
           <Stack gap={2}>
             <Group gap="xs">
-              <IconChartBar size={14} color="var(--mantine-color-green-4)" />
-              <Text size="xs" c="dimmed">Memory</Text>
+              <HardDrive size={14} className="text-emerald-400" />
+              <Text size="xs" className="text-neutral-500">Memory</Text>
             </Group>
-            <Text fw={600} size="sm">{formatBytes(container.memory_usage)}</Text>
+            <Text fw={600} size="sm" className="text-white">{formatBytes(container.memory_usage)}</Text>
             <Progress
               value={(container.memory_usage / container.memory_limit) * 100}
               size="xs"
-              color="green"
+              className="bg-neutral-800"
+              style={{ backgroundColor: '#262626' }}
+              color="emerald"
             />
           </Stack>
         </SimpleGrid>
 
+        {/* Volumes */}
+        {container.volumes && container.volumes.length > 0 && (
+          <Stack gap={2}>
+            <Group gap="xs">
+              <FolderOpen size={14} className="text-purple-400" />
+              <Text size="xs" className="text-neutral-500">Volumes</Text>
+            </Group>
+            <Stack gap={1}>
+              {container.volumes.slice(0, 3).map((volume, idx) => (
+                <Text key={idx} size="xs" className="text-neutral-400 font-mono truncate">
+                  {volume}
+                </Text>
+              ))}
+              {container.volumes.length > 3 && (
+                <Text size="xs" className="text-neutral-500">
+                  +{container.volumes.length - 3} more
+                </Text>
+              )}
+            </Stack>
+          </Stack>
+        )}
+
         {/* Status */}
         <Group gap="xs">
-          <IconClock size={14} color="var(--mantine-color-dimmed)" />
-          <Text size="xs" c="dimmed">{container.status}</Text>
+          <Clock size={14} className="text-neutral-500" />
+          <Text size="xs" className="text-neutral-500">{container.status}</Text>
         </Group>
 
         {/* Actions */}
-        <Group gap="xs" wrap="wrap">
-          {container.state.toLowerCase().includes('running') ? (
+        <Group gap="xs">
+          {isRunning ? (
             <>
               <Button
-                variant="light"
-                color="blue"
+                variant="outline"
                 size="compact-xs"
-                leftSection={<IconRefresh size={12} />}
                 onClick={() => onAction('restart', container.name)}
+                className="border-neutral-700 text-neutral-300 hover:bg-neutral-800"
+                leftSection={<RefreshCw size={12} />}
               >
                 Restart
               </Button>
               <Button
-                variant="light"
-                color="red"
+                variant="outline"
                 size="compact-xs"
-                leftSection={<IconPlayerStop size={12} />}
                 onClick={() => onAction('stop', container.name)}
+                className="border-red-900/50 text-red-400 hover:bg-red-500/10"
+                leftSection={<Square size={12} />}
               >
                 Stop
               </Button>
             </>
           ) : (
             <Button
-              variant="light"
-              color="green"
+              variant="outline"
               size="compact-xs"
-              leftSection={<IconPlayerPlay size={12} />}
               onClick={() => onAction('start', container.name)}
+              className="border-emerald-900/50 text-emerald-400 hover:bg-emerald-500/10"
+              leftSection={<Play size={12} />}
             >
               Start
             </Button>
           )}
           <Button
             variant="outline"
-            color="gray"
             size="compact-xs"
-            leftSection={<IconFileText size={12} />}
             onClick={() => onViewLogs(container.name)}
+            className="border-neutral-700 text-neutral-300 hover:bg-neutral-800"
+            leftSection={<FileText size={12} />}
           >
             Logs
           </Button>

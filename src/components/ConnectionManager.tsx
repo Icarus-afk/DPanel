@@ -26,9 +26,13 @@ import {
   IconLock,
   IconTrash,
   IconEdit,
-  IconClock,
   IconStar,
   IconStarOff,
+  IconServer2,
+  IconPlus,
+  IconArrowLeft,
+  IconCheck,
+  IconWifi,
 } from '@tabler/icons-react';
 
 const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -36,10 +40,10 @@ const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in 
 export default function ConnectionManager() {
   const { setActiveServer, setIsConnected } = useServer();
   const { addToast } = useToast();
-  const [loading, setLoading] = useState(false);
   const [savedProfiles, setSavedProfiles] = useState<SavedServerProfile[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState<SavedServerProfile | null>(null);
+  const [connectingProfileId, setConnectingProfileId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: 'My VPS',
     host: '',
@@ -73,7 +77,7 @@ export default function ConnectionManager() {
       return;
     }
 
-    setLoading(true);
+    setConnectingProfileId('submitting');
 
     const authMethod: AuthMethod = formData.authType === 'password'
       ? { type: 'Password', password: formData.password }
@@ -103,7 +107,7 @@ export default function ConnectionManager() {
     } catch (error) {
       addToast(String(error), 'error');
     } finally {
-      setLoading(false);
+      setConnectingProfileId(null);
     }
   };
 
@@ -113,7 +117,7 @@ export default function ConnectionManager() {
       return;
     }
 
-    setLoading(true);
+    setConnectingProfileId('testing');
 
     const authMethod: AuthMethod = formData.authType === 'password'
       ? { type: 'Password', password: formData.password }
@@ -134,14 +138,14 @@ export default function ConnectionManager() {
     } catch (error) {
       addToast(String(error), 'error');
     } finally {
-      setLoading(false);
+      setConnectingProfileId(null);
     }
   };
 
   const handleQuickConnect = async (profile: SavedServerProfile) => {
     if (!isTauri()) return;
 
-    setLoading(true);
+    setConnectingProfileId(profile.id);
     try {
       const serverProfile: ServerProfile = {
         id: profile.id,
@@ -163,7 +167,7 @@ export default function ConnectionManager() {
     } catch (error) {
       addToast(String(error), 'error');
     } finally {
-      setLoading(false);
+      setConnectingProfileId(null);
     }
   };
 
@@ -228,250 +232,350 @@ export default function ConnectionManager() {
     addToast('Default key path set. Adjust if your key is elsewhere.', 'info');
   };
 
+  const isConnecting = (id: string) => connectingProfileId === id;
+
+  const inputStyles = {
+    label: { color: '#a3a3a3', fontWeight: 500, marginBottom: '8px', fontSize: '13px' },
+    input: {
+      backgroundColor: '#171717',
+      border: '1px solid #262626',
+      color: '#ffffff',
+      borderRadius: '8px',
+      padding: '10px 12px',
+      fontSize: '14px',
+    },
+    placeholder: { color: '#525252' },
+  };
+
   return (
-    <Stack gap="md" maw={900} mx="auto" py="xl">
-      {/* Saved Servers Section */}
-      {savedProfiles.length > 0 && !showForm && (
-        <Paper withBorder p="md" radius="md">
-          <Group justify="space-between" mb="md">
-            <Title order={4}>Saved Servers</Title>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setEditingProfile(null);
-                setFormData({
-                  name: 'My VPS',
-                  host: '',
-                  port: 22,
-                  username: 'root',
-                  authType: 'key',
-                  password: '',
-                  keyPath: '',
-                  passphrase: '',
-                });
-                setShowForm(true);
-              }}
-            >
-              Add New Server
-            </Button>
-          </Group>
+    <Box className="min-h-screen bg-neutral-950">
+      <div className="max-w-2xl mx-auto px-4 py-20">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-neutral-900 border border-neutral-800 mb-5">
+            <IconWifi size={32} className="text-emerald-400" />
+          </div>
+          <Title order={2} className="text-2xl font-semibold text-white mb-2">
+            SSH Connection
+          </Title>
+          <Text size="sm" className="text-neutral-500 mt-3">
+            Connect to your remote servers securely via SSH
+          </Text>
+        </div>
 
-          <Stack gap="xs">
-            {savedProfiles.map((profile) => (
-              <Paper
-                key={profile.id}
-                withBorder
-                p="sm"
-                radius="md"
-                bg="var(--mantine-color-dark-6)"
+        {/* Saved Servers Section */}
+        {savedProfiles.length > 0 && !showForm && (
+          <Paper
+            withBorder
+            p="lg"
+            radius="lg"
+            className="bg-neutral-900 border-neutral-800"
+          >
+            <Group justify="space-between" mb="md">
+              <Title order={4} className="text-base font-medium text-white">
+                Saved Servers
+              </Title>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditingProfile(null);
+                  setFormData({
+                    name: 'My VPS',
+                    host: '',
+                    port: 22,
+                    username: 'root',
+                    authType: 'key',
+                    password: '',
+                    keyPath: '',
+                    passphrase: '',
+                  });
+                  setShowForm(true);
+                }}
+                leftSection={<IconPlus size={16} />}
+                className="bg-transparent border-neutral-700 text-neutral-300 hover:bg-neutral-800 hover:border-neutral-600 transition-all text-sm"
               >
-                <Group justify="space-between">
-                  <Group gap="sm">
-                    <Box>
-                      <Group gap="xs">
-                        <Text fw={600}>{profile.name}</Text>
-                        {profile.connect_on_startup && (
-                          <Badge variant="light" size="sm" color="yellow">
-                            Auto-connect
-                          </Badge>
-                        )}
-                      </Group>
-                      <Text size="sm" c="dimmed">
-                        {profile.username}@{profile.host}:{profile.port}
-                      </Text>
-                      <Group gap="xs" mt={4}>
-                        <IconClock size={12} />
-                        <Text size="xs" c="dimmed">
-                          Last connected: {formatLastConnected(profile.last_connected)}
-                        </Text>
-                      </Group>
-                    </Box>
-                  </Group>
-
-                  <Group gap="xs">
-                    <Tooltip label="Quick Connect">
-                      <ActionIcon
-                        variant="filled"
-                        color="green"
-                        size="lg"
-                        onClick={() => handleQuickConnect(profile)}
-                        loading={loading}
-                      >
-                        <IconPlugConnected size={20} />
-                      </ActionIcon>
-                    </Tooltip>
-
-                    <Tooltip label={profile.connect_on_startup ? 'Disable auto-connect' : 'Enable auto-connect'}>
-                      <ActionIcon
-                        variant="subtle"
-                        color={profile.connect_on_startup ? 'yellow' : 'gray'}
-                        onClick={() => handleToggleConnectOnStartup(profile.id, profile.connect_on_startup)}
-                      >
-                        {profile.connect_on_startup ? <IconStar size={18} /> : <IconStarOff size={18} />}
-                      </ActionIcon>
-                    </Tooltip>
-
-                    <Tooltip label="Edit">
-                      <ActionIcon
-                        variant="subtle"
-                        color="blue"
-                        onClick={() => handleEditProfile(profile)}
-                      >
-                        <IconEdit size={18} />
-                      </ActionIcon>
-                    </Tooltip>
-
-                    <Tooltip label="Delete">
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        onClick={() => handleDeleteProfile(profile.id, profile.name)}
-                      >
-                        <IconTrash size={18} />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Group>
-                </Group>
-              </Paper>
-            ))}
-          </Stack>
-
-          <Divider my="md" />
-        </Paper>
-      )}
-
-      {/* Connection Form */}
-      {(showForm || savedProfiles.length === 0) && (
-        <Paper withBorder p="xl" radius="md">
-          <Stack gap="md">
-            <Group justify="space-between">
-              <Title order={2}>{editingProfile ? 'Edit Server' : 'Connect to Server'}</Title>
-              {savedProfiles.length > 0 && (
-                <Button variant="subtle" size="sm" onClick={() => setShowForm(false)}>
-                  Back to Saved Servers
-                </Button>
-              )}
+                Add Server
+              </Button>
             </Group>
 
-            <Text size="sm" c="dimmed">
-              Enter your SSH credentials to connect to a remote server
-            </Text>
+            <Stack gap="xs">
+              {savedProfiles.map((profile) => (
+                <Paper
+                  key={profile.id}
+                  withBorder
+                  p="md"
+                  radius="md"
+                  className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-all group"
+                >
+                  <Group justify="space-between">
+                    <Group gap="md">
+                      <div className="w-10 h-10 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center">
+                        <IconServer2 size={20} className="text-neutral-400" />
+                      </div>
+                      <div>
+                        <Group gap="xs" mb={1}>
+                          <Text fw={500} className="text-white text-sm">
+                            {profile.name}
+                          </Text>
+                          {profile.connect_on_startup && (
+                            <Badge
+                              size="sm"
+                              className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-xs"
+                            >
+                              Auto
+                            </Badge>
+                          )}
+                        </Group>
+                        <Text size="xs" className="text-neutral-500">
+                          {profile.username}@{profile.host}:{profile.port}
+                        </Text>
+                      </div>
+                    </Group>
 
-            <Divider my="xs" />
+                    <Group gap="xs">
+                      <Tooltip label="Quick Connect">
+                        <ActionIcon
+                          variant="filled"
+                          size="md"
+                          radius="md"
+                          onClick={() => handleQuickConnect(profile)}
+                          loading={isConnecting(profile.id)}
+                          className="bg-emerald-600 hover:bg-emerald-500 transition-all"
+                        >
+                          <IconCheck size={18} />
+                        </ActionIcon>
+                      </Tooltip>
 
-            <form onSubmit={handleSubmit}>
-              <Stack gap="md">
-                <TextInput
-                  label="Server Name"
-                  placeholder="My VPS"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+                      <Tooltip
+                        label={
+                          profile.connect_on_startup ? 'Disable auto-connect' : 'Enable auto-connect'
+                        }
+                      >
+                        <ActionIcon
+                          variant="subtle"
+                          size="md"
+                          radius="md"
+                          onClick={() =>
+                            handleToggleConnectOnStartup(profile.id, profile.connect_on_startup)
+                          }
+                          className={
+                            profile.connect_on_startup
+                              ? 'text-yellow-500 hover:bg-yellow-500/10'
+                              : 'text-neutral-600 hover:bg-neutral-800'
+                          }
+                        >
+                          {profile.connect_on_startup ? (
+                            <IconStar size={16} />
+                          ) : (
+                            <IconStarOff size={16} />
+                          )}
+                        </ActionIcon>
+                      </Tooltip>
 
-                <Group grow>
-                  <TextInput
-                    label="Host"
-                    placeholder="192.168.1.100"
-                    value={formData.host}
-                    onChange={(e) => setFormData({ ...formData, host: e.target.value })}
-                    required
-                  />
-                  <NumberInput
-                    label="Port"
-                    placeholder="22"
-                    value={formData.port}
-                    onChange={(value) => setFormData({ ...formData, port: Number(value) || 22 })}
-                    min={1}
-                    max={65535}
-                  />
-                </Group>
+                      <Tooltip label="Edit">
+                        <ActionIcon
+                          variant="subtle"
+                          size="md"
+                          radius="md"
+                          onClick={() => handleEditProfile(profile)}
+                          className="text-neutral-600 hover:bg-blue-500/10 hover:text-blue-500"
+                        >
+                          <IconEdit size={16} />
+                        </ActionIcon>
+                      </Tooltip>
 
-                <TextInput
-                  label="Username"
-                  placeholder="root"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  required
-                />
+                      <Tooltip label="Delete">
+                        <ActionIcon
+                          variant="subtle"
+                          size="md"
+                          radius="md"
+                          onClick={() => handleDeleteProfile(profile.id, profile.name)}
+                          className="text-neutral-600 hover:bg-red-500/10 hover:text-red-500"
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
+                  </Group>
+                </Paper>
+              ))}
+            </Stack>
+          </Paper>
+        )}
 
-                <Box>
-                  <Text size="sm" fw={500} mb="xs">Authentication</Text>
-                  <SegmentedControl
-                    value={formData.authType}
-                    onChange={(value) => setFormData({ ...formData, authType: value as 'password' | 'key' })}
-                    data={[
-                      { label: 'Password', value: 'password' },
-                      { label: 'SSH Key', value: 'key' },
-                    ]}
-                    fullWidth
-                  />
-                </Box>
-
-                {formData.authType === 'password' ? (
-                  <PasswordInput
-                    label="Password"
-                    placeholder="Enter password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                  />
-                ) : (
-                  <>
-                    <TextInput
-                      label="Private Key Path"
-                      placeholder="~/.ssh/id_ed25519"
-                      value={formData.keyPath}
-                      onChange={(e) => setFormData({ ...formData, keyPath: e.target.value })}
-                      required
-                      leftSection={<IconKey size={16} />}
-                      rightSection={
-                        !formData.keyPath && (
-                          <Button
-                            variant="subtle"
-                            size="compact-xs"
-                            onClick={fillDefaultKeyPath}
-                          >
-                            Use Default
-                          </Button>
-                        )
-                      }
-                    />
-                    <PasswordInput
-                      label="Key Passphrase (optional)"
-                      placeholder="Enter passphrase"
-                      value={formData.passphrase}
-                      onChange={(e) => setFormData({ ...formData, passphrase: e.target.value })}
-                      leftSection={<IconLock size={16} />}
-                    />
-                  </>
+        {/* Connection Form */}
+        {(showForm || savedProfiles.length === 0) && (
+          <Paper
+            withBorder
+            p="lg"
+            radius="lg"
+            className="bg-neutral-900 border-neutral-800"
+          >
+            <Stack gap="md">
+              <Group justify="space-between">
+                <Title order={3} className="text-base font-medium text-white">
+                  {editingProfile ? 'Edit Server' : 'Add New Server'}
+                </Title>
+                {savedProfiles.length > 0 && (
+                  <Button
+                    variant="subtle"
+                    size="sm"
+                    onClick={() => setShowForm(false)}
+                    leftSection={<IconArrowLeft size={14} />}
+                    className="text-neutral-500 hover:text-white hover:bg-neutral-800 transition-all text-sm"
+                  >
+                    Back
+                  </Button>
                 )}
+              </Group>
 
-                <Divider my="xs" />
+              <Divider className="border-neutral-800" />
 
-                <Group justify="apart">
-                  <Button
-                    variant="outline"
-                    onClick={testConnection}
-                    loading={loading}
-                    leftSection={<IconPlugConnected size={16} />}
-                  >
-                    Test Connection
-                  </Button>
-                  <Button
-                    type="submit"
-                    loading={loading}
-                    loaderProps={{ type: loading ? 'dots' : 'oval' }}
-                  >
-                    {loading ? 'Connecting...' : editingProfile ? 'Save & Connect' : 'Connect'}
-                  </Button>
-                </Group>
-              </Stack>
-            </form>
-          </Stack>
-        </Paper>
-      )}
-    </Stack>
+              <form onSubmit={handleSubmit}>
+                <Stack gap="md">
+                  <TextInput
+                    label="Server Name"
+                    placeholder="My VPS"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    styles={inputStyles}
+                  />
+
+                  <Group grow gap="md">
+                    <TextInput
+                      label="Host"
+                      placeholder="192.168.1.100"
+                      value={formData.host}
+                      onChange={(e) => setFormData({ ...formData, host: e.target.value })}
+                      required
+                      styles={inputStyles}
+                    />
+                    <NumberInput
+                      label="Port"
+                      placeholder="22"
+                      value={formData.port}
+                      onChange={(value) => setFormData({ ...formData, port: Number(value) || 22 })}
+                      min={1}
+                      max={65535}
+                      styles={inputStyles}
+                    />
+                  </Group>
+
+                  <TextInput
+                    label="Username"
+                    placeholder="root"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    required
+                    styles={inputStyles}
+                  />
+
+                  <Box>
+                    <Text size="sm" className="text-neutral-400 mb-2" style={{ fontWeight: 500, fontSize: '13px' }}>
+                      Authentication
+                    </Text>
+                    <SegmentedControl
+                      value={formData.authType}
+                      onChange={(value) =>
+                        setFormData({ ...formData, authType: value as 'password' | 'key' })
+                      }
+                      data={[
+                        { label: 'Password', value: 'password' },
+                        { label: 'SSH Key', value: 'key' },
+                      ]}
+                      fullWidth
+                      styles={{
+                        root: { backgroundColor: '#171717', borderRadius: '8px', padding: '3px' },
+                        control: {
+                          backgroundColor: '#262626',
+                          borderRadius: '6px',
+                        },
+                        label: {
+                          color: '#a3a3a3',
+                          fontWeight: 500,
+                          fontSize: '13px',
+                          padding: '6px 12px',
+                        },
+                      }}
+                    />
+                  </Box>
+
+                  {formData.authType === 'password' ? (
+                    <PasswordInput
+                      label="Password"
+                      placeholder="Enter password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required
+                      styles={inputStyles}
+                    />
+                  ) : (
+                    <>
+                      <TextInput
+                        label="Private Key Path"
+                        placeholder="~/.ssh/id_ed25519"
+                        value={formData.keyPath}
+                        onChange={(e) => setFormData({ ...formData, keyPath: e.target.value })}
+                        required
+                        leftSection={<IconKey size={14} className="text-neutral-600" />}
+                        rightSection={
+                          !formData.keyPath && (
+                            <Button
+                              variant="subtle"
+                              size="compact-xs"
+                              onClick={fillDefaultKeyPath}
+                              className="text-neutral-500 hover:text-white text-xs"
+                            >
+                              Default
+                            </Button>
+                          )
+                        }
+                        styles={inputStyles}
+                      />
+                      <PasswordInput
+                        label="Key Passphrase (optional)"
+                        placeholder="Enter passphrase"
+                        value={formData.passphrase}
+                        onChange={(e) => setFormData({ ...formData, passphrase: e.target.value })}
+                        leftSection={<IconLock size={14} className="text-neutral-600" />}
+                        styles={inputStyles}
+                      />
+                    </>
+                  )}
+
+                  <Divider className="border-neutral-800" />
+
+                  <Group justify="apart">
+                    <Button
+                      variant="outline"
+                      onClick={testConnection}
+                      loading={isConnecting('testing')}
+                      leftSection={<IconPlugConnected size={14} />}
+                      className="bg-transparent border-neutral-700 text-neutral-300 hover:bg-neutral-800 hover:border-neutral-600 transition-all text-sm"
+                    >
+                      Test
+                    </Button>
+                    <Button
+                      type="submit"
+                      loading={isConnecting('submitting')}
+                      loaderProps={{ type: isConnecting('submitting') ? 'dots' : 'oval' }}
+                      className="bg-white text-black hover:bg-neutral-200 transition-all font-medium text-sm px-6"
+                    >
+                      {isConnecting('submitting')
+                        ? 'Connecting...'
+                        : editingProfile
+                        ? 'Save & Connect'
+                        : 'Connect'}
+                    </Button>
+                  </Group>
+                </Stack>
+              </form>
+            </Stack>
+          </Paper>
+        )}
+      </div>
+    </Box>
   );
 }
