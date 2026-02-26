@@ -1,6 +1,6 @@
 # DPanel
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](https://opensource.org/licenses/GPL-3.0)
 [![Tauri](https://img.shields.io/badge/Tauri-2.0-24C8DB?logo=tauri&logoColor=white)](https://tauri.app)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![Rust](https://img.shields.io/badge/Rust-latest-orange?logo=rust&logoColor=white)](https://www.rust-lang.org)
@@ -12,18 +12,21 @@ DPanel is a modern desktop application that enables developers to manage VPS ser
 ## ✨ Features
 
 ### 🔐 Secure SSH Connection
+
 - Password and private key authentication
 - Encrypted credential storage
 - Connection status monitoring
 - Multi-server support
 
 ### 📊 System Dashboard
+
 - Real-time CPU, RAM, and disk usage
 - Load average and uptime
 - Network statistics
 - Interactive charts
 
 ### 🐳 Docker Management
+
 - Container list and status
 - Start/stop/restart containers
 - Container logs streaming
@@ -32,12 +35,14 @@ DPanel is a modern desktop application that enables developers to manage VPS ser
 - Docker Compose projects discovery
 
 ### ⚙️ Service Management
+
 - Systemd services list
 - Start/stop/restart services
 - Service logs via journalctl
 - Filter by status (active/failed/inactive)
 
 ### 🌐 Nginx Manager
+
 - Status overview (running, version, workers)
 - Virtual hosts management
 - Config editor with validation
@@ -45,6 +50,7 @@ DPanel is a modern desktop application that enables developers to manage VPS ser
 - Access and error logs
 
 ### ⏰ Cron Job Manager
+
 - User crontab editor
 - System cron jobs view
 - /etc/cron.d management
@@ -52,6 +58,7 @@ DPanel is a modern desktop application that enables developers to manage VPS ser
 - Schedule presets
 
 ### 🔒 Firewall Management
+
 - UFW status and rules
 - Enable/disable firewall
 - Add/delete rules
@@ -59,6 +66,7 @@ DPanel is a modern desktop application that enables developers to manage VPS ser
 - Listening ports overview
 
 ### 📝 Log Viewer
+
 - System logs (journalctl)
 - Service-specific logs
 - File-based logs
@@ -66,11 +74,13 @@ DPanel is a modern desktop application that enables developers to manage VPS ser
 - Live streaming
 
 ### 💻 Quick Commands
+
 - Pre-defined system commands
 - Custom command execution
 - Command categories
 
 ### 📊 Infrastructure Graph
+
 - Visualize nginx → Docker container relationships
 - See proxy configurations and data flow
 - Track container networks and volumes
@@ -104,6 +114,7 @@ pnpm tauri build
 ### Download Pre-built Binaries
 
 Visit the [Releases](https://github.com/yourusername/dpanel/releases) page for pre-built binaries for:
+
 - Windows (.msi, .exe)
 - Linux (.deb, .AppImage, .rpm)
 - macOS (.dmg, .app)
@@ -116,13 +127,13 @@ Visit the [Releases](https://github.com/yourusername/dpanel/releases) page for p
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 18, Mantine UI, Tabler Icons, React Flow |
-| Desktop | Tauri 2 |
-| Backend | Rust, ssh2 |
-| State | React Context, Tauri Store |
-| Animations | Framer Motion |
+| Layer      | Technology                                     |
+| ---------- | ---------------------------------------------- |
+| Frontend   | React 18, Mantine UI, Tabler Icons, React Flow |
+| Desktop    | Tauri 2                                        |
+| Backend    | Rust, ssh2                                     |
+| State      | React Context, Tauri Store                     |
+| Animations | Framer Motion                                  |
 
 ## 📁 Project Structure
 
