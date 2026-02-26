@@ -5,93 +5,93 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![Rust](https://img.shields.io/badge/Rust-latest-orange?logo=rust&logoColor=white)](https://www.rust-lang.org)
 
-> **Lightweight desktop VPS management tool over SSH**
+**Lightweight desktop VPS management tool over SSH**
 
 DPanel is a modern desktop application that enables developers to manage VPS servers entirely over SSH without installing any agent or control panel on the server. Built with Tauri 2, React, and Rust.
 
-## ✨ Features
+## Features
 
-### 🔐 Secure SSH Connection
+### Secure SSH Connection
 
 - Password and private key authentication
 - Encrypted credential storage
 - Connection status monitoring
-- Multi-server support
+- Multi-server support with saved profiles
 
-### 📊 System Dashboard
+### System Dashboard
 
-- Real-time CPU, RAM, and disk usage
-- Load average and uptime
-- Network statistics
-- Interactive charts
+- Real-time CPU, memory, and disk usage metrics
+- Load average and system uptime
+- Network statistics with traffic monitoring
+- Interactive performance charts
 
-### 🐳 Docker Management
+### Docker Management
 
-- Container list and status
-- Start/stop/restart containers
-- Container logs streaming
-- Docker images and volumes
-- Docker networks overview
-- Docker Compose projects discovery
+- Container management (start/stop/restart)
+- Real-time CPU and memory usage per container
+- Container logs with streaming
+- Docker images, volumes, and networks overview
+- Docker Compose project discovery and inspection
 
-### ⚙️ Service Management
+### Service Management
 
-- Systemd services list
-- Start/stop/restart services
+- Systemd services listing and filtering
+- Service control (start/stop/restart)
 - Service logs via journalctl
 - Filter by status (active/failed/inactive)
 
-### 🌐 Nginx Manager
+### Nginx Manager
 
-- Status overview (running, version, workers)
+- Status overview (running state, version, worker processes)
 - Virtual hosts management
-- Config editor with validation
+- Configuration editor with syntax validation
 - Enable/disable sites
-- Access and error logs
+- Access and error log viewing
 
-### ⏰ Cron Job Manager
+### Cron Job Manager
 
 - User crontab editor
-- System cron jobs view
-- /etc/cron.d management
-- Cron folders (daily/weekly/monthly)
-- Schedule presets
+- System cron jobs inspection
+- /etc/cron.d job management
+- Cron folder browsing (daily/weekly/monthly)
+- Common schedule presets
 
-### 🔒 Firewall Management
+### Firewall Management
 
-- UFW status and rules
-- Enable/disable firewall
-- Add/delete rules
-- Port management
+- UFW status and configuration
+- Firewall enable/disable
+- Rule management (add/delete)
+- Port-based rule creation
 - Listening ports overview
 
-### 📝 Log Viewer
+### Log Viewer
 
-- System logs (journalctl)
+- System logs via journalctl
 - Service-specific logs
-- File-based logs
-- Search and filter
-- Live streaming
+- File-based log viewing
+- Search and filtering capabilities
+- Live log streaming with auto-scroll
 
-### 💻 Quick Commands
+### Quick Commands
 
-- Pre-defined system commands
+- Pre-defined system administration commands
 - Custom command execution
-- Command categories
+- Categorized command library
+- Output viewing and export
 
-### 📊 Infrastructure Graph
+### Infrastructure Graph
 
-- Visualize nginx → Docker container relationships
-- See proxy configurations and data flow
-- Track container networks and volumes
-- Real-time status monitoring
+- Visual representation of nginx to Docker container relationships
+- Proxy configuration and data flow visualization
+- Container network and volume tracking
+- Real-time status indicators
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
 - **Node.js** 18+ and pnpm
-- **Rust** 1.70+ ([install](https://www.rust-lang.org/tools/install))
+- **Rust** 1.70+ ([installation guide](https://www.rust-lang.org/tools/install))
 - **Tauri CLI** (`cargo install tauri-cli`)
 
 ### Installation
@@ -113,57 +113,62 @@ pnpm tauri build
 
 ### Download Pre-built Binaries
 
-Visit the [Releases](https://github.com/yourusername/dpanel/releases) page for pre-built binaries for:
+Pre-built binaries are available for:
 
-- Windows (.msi, .exe)
-- Linux (.deb, .AppImage, .rpm)
-- macOS (.dmg, .app)
+- **Windows**: .msi, .exe installers
+- **Linux**: .deb, .AppImage, .rpm packages
+- **macOS**: .dmg, .app bundles
 
-## 📖 Documentation
+Visit the [Releases](https://github.com/yourusername/dpanel/releases) page to download the appropriate package for your system.
+
+## Documentation
 
 - [Getting Started](./docs/GETTING_STARTED.md) - Setup and installation guide
 - [Building](./docs/BUILDING.md) - Build instructions for all platforms
 - [Architecture](./docs/ARCHITECTURE.md) - Technical architecture overview
 
-## 🛠️ Tech Stack
+## Technology Stack
 
-| Layer      | Technology                                     |
-| ---------- | ---------------------------------------------- |
-| Frontend   | React 18, Mantine UI, Tabler Icons, React Flow |
-| Desktop    | Tauri 2                                        |
-| Backend    | Rust, ssh2                                     |
-| State      | React Context, Tauri Store                     |
-| Animations | Framer Motion                                  |
+| Layer        | Technology                              |
+|--------------|-----------------------------------------|
+| Frontend     | React 18, Mantine UI, React Flow        |
+| Desktop      | Tauri 2                                 |
+| Backend      | Rust, ssh2                              |
+| State        | React Context, Tauri Store              |
+| Animations   | Framer Motion                           |
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 dpanel/
-├── src/                    # React frontend
-│   ├── components/         # UI components
-│   │   ├── infrastructure-graph/  # Infrastructure visualization
-│   │   ├── layout/         # Navigation and layout
-│   │   └── ui/             # Reusable UI components
-│   ├── context/            # React context providers
-│   ├── types/              # TypeScript types
-│   └── App.tsx
-├── src-tauri/              # Rust backend
+├── src/                          # React frontend
+│   ├── components/               # UI components
+│   │   ├── infrastructure-graph/ # Infrastructure visualization
+│   │   ├── layout/               # Navigation and top bar
+│   │   └── ui/                   # Reusable UI components
+│   ├── context/                  # React context providers
+│   ├── types/                    # TypeScript type definitions
+│   └── App.tsx                   # Main application component
+├── src-tauri/                    # Rust backend
 │   ├── src/
-│   │   ├── commands.rs     # Tauri commands
-│   │   ├── infrastructure_graph.rs  # Infrastructure visualization
-│   │   ├── ssh.rs          # SSH client
-│   │   ├── types.rs        # Rust types
-│   │   └── main.rs
+│   │   ├── commands.rs           # Tauri commands
+│   │   ├── infrastructure_graph.rs
+│   │   ├── ssh.rs                # SSH client implementation
+│   │   ├── types.rs              # Rust type definitions
+│   │   └── main.rs               # Application entry point
 │   └── Cargo.toml
-├── docs/                   # Documentation
+├── docs/                         # Documentation
+├── CONTRIBUTING.md               # Contribution guidelines
+├── CODE_OF_CONDUCT.md            # Code of conduct
+├── SECURITY.md                   # Security policy
 └── package.json
 ```
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
+Contributions are welcome. Please review the [Contributing Guide](./CONTRIBUTING.md) for details on the contribution process and development guidelines.
 
-### Quick Start for Contributors
+### Getting Started with Development
 
 ```bash
 # Fork the repository
@@ -171,43 +176,43 @@ We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md)
 git clone https://github.com/YOUR_USERNAME/dpanel.git
 cd dpanel
 
-# Create a branch
-git checkout -b feature/your-feature
+# Create a feature branch
+git checkout -b feature/your-feature-name
 
 # Make changes and commit
 git commit -m "feat: add new feature"
 
-# Push and create PR
-git push origin feature/your-feature
+# Push and create pull request
+git push origin feature/your-feature-name
 ```
 
 ### Development Guidelines
 
 - Follow the [Code of Conduct](./CODE_OF_CONDUCT.md)
-- Write meaningful commit messages
-- Add tests for new features
+- Write clear, descriptive commit messages
+- Add tests for new functionality
 - Update documentation as needed
 
-## 🔒 Security
+## Security
 
-See [SECURITY.md](./SECURITY.md) for security policy and vulnerability reporting.
+Security is a priority for DPanel. Please review [SECURITY.md](./SECURITY.md) for the security policy and vulnerability reporting process.
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+This project is licensed under the GPL-3.0 License - see the [LICENSE](./LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- [Tauri](https://tauri.app) - Desktop framework
-- [Mantine](https://mantine.dev) - UI components
-- [Tabler Icons](https://tabler-icons.io) - Icons
+- [Tauri](https://tauri.app) - Desktop application framework
+- [Mantine](https://mantine.dev) - UI component library
+- [React Flow](https://reactflow.dev) - Graph visualization
 - [ssh2](https://crates.io/crates/ssh2) - Rust SSH library
 
-## 📬 Contact
+## Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/dpanel/issues)
+- **Bug Reports**: [GitHub Issues](https://github.com/yourusername/dpanel/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/dpanel/discussions)
 
 ---
 
-<p align="center">Made with ❤️ using Tauri + React + Rust</p>
+DPanel - Built with Tauri, React, and Rust
