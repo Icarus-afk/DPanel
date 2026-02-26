@@ -11,7 +11,7 @@ use tokio::sync::Mutex;
 const STORE_FILENAME: &str = "server_profiles.json";
 const PROFILES_KEY: &str = "server_profiles";
 const MAX_HISTORY_POINTS: usize = 30; // Increased for smoother charts
-const COMMAND_TIMEOUT_SECS: u64 = 30; // Timeout for SSH commands
+// const COMMAND_TIMEOUT_SECS: u64 = 30; // Timeout for SSH commands - reserved for future use
 
 fn profiles_from_json(value: Option<JsonValue>) -> HashMap<String, SavedServerProfile> {
     match value {

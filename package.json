@@ -1,6 +1,7 @@
 {
   "name": "dpanel",
   "version": "0.1.0",
+  "type": "module",
   "description": "Lightweight desktop VPS management tool over SSH",
   "scripts": {
     "dev": "vite",

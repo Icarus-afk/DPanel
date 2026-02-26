@@ -64,6 +64,7 @@ pub enum AuthMethod {
 
 // Helper for SSH command building
 impl AuthMethod {
+    #[allow(dead_code)]
     pub fn is_key_based(&self) -> bool {
         matches!(self, AuthMethod::PrivateKey { .. })
     }
@@ -130,12 +131,14 @@ pub struct ServiceInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LogEntry {
     pub timestamp: String,
     pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SecurityInfo {
     pub open_ports: Vec<u16>,
     pub firewall_active: bool,
@@ -144,6 +147,7 @@ pub struct SecurityInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct LoginAttempt {
     pub timestamp: String,
     pub username: String,
@@ -317,6 +321,7 @@ pub struct SystemGroup {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SSHKey {
     pub key_type: String,
     pub key_data: String,
@@ -325,6 +330,7 @@ pub struct SSHKey {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct UserDetail {
     pub username: String,
     pub uid: u32,
@@ -351,6 +357,7 @@ pub struct CreateUserRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ModifyUserRequest {
     pub username: String,
     pub new_username: Option<String>,

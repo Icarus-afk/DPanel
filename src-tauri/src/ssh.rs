@@ -120,7 +120,7 @@ impl SshClient {
 
         let mut output = String::new();
         let stderr = String::new();
-        
+
         // Read stdout
         channel.read_to_string(&mut output).map_err(|e| CommandError {
             message: format!("Failed to read output: {}", e),
@@ -149,6 +149,7 @@ impl SshClient {
         }
     }
 
+    #[allow(dead_code)]
     pub fn is_connected(&self) -> bool {
         let session_guard = self.session.lock().unwrap();
         session_guard.as_ref().map_or(false, |s| s.authenticated())

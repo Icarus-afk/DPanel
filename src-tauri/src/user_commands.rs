@@ -1,9 +1,6 @@
-use crate::ssh::SshClient;
 use crate::types::*;
 use crate::commands::AppState;
-use std::sync::Arc;
 use tauri::State;
-use tokio::sync::Mutex;
 
 #[tauri::command]
 pub async fn get_system_users(state: State<'_, AppState>) -> Result<Vec<SystemUser>, String> {
