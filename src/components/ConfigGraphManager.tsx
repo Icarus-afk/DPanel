@@ -1,43 +1,44 @@
-import { Box, Text, Group, Paper } from '@mantine/core';
-import { IconGraph } from '@tabler/icons-react';
+import { Box, Text, Group, Stack, Card } from '@mantine/core';
+import { Icons } from '../lib/icons';
 import { ConfigGraph } from './config-graph/ConfigGraph';
 
 export function ConfigGraphManager() {
   return (
-    <Box
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+    <div className="page-container animate-fade-in-up">
       {/* Header */}
-      <Box style={{ marginBottom: 24 }}>
+      <Box style={{ marginBottom: 'var(--space-6)' }}>
         <Group gap="sm" mb="xs">
-          <IconGraph size={32} color="#3b82f6" />
-          <Text size="xl" fw={700} c="white">
-            Configuration Graph
-          </Text>
+          <Box
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 'var(--radius-lg)',
+              background: 'hsl(var(--primary-subtle))',
+              border: '1px solid hsl(var(--primary-border))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'hsl(var(--primary))',
+            }}
+          >
+            <Icons.Graph size={24} />
+          </Box>
+          <Stack gap={0}>
+            <Text size="xl" fw={700} style={{ color: 'hsl(var(--text-primary))', fontSize: 'var(--text-lg)' }}>
+              Configuration Graph
+            </Text>
+            <Text size="sm" c="var(--text-tertiary)">
+              Visualize configuration files, their relationships, and dependencies across your project
+            </Text>
+          </Stack>
         </Group>
-        <Text size="sm" c="dimmed">
-          Visualize configuration files, their relationships, and dependencies across your project
-        </Text>
       </Box>
 
       {/* Graph Container */}
-      <Paper
-        style={{
-          flex: 1,
-          background: '#0a0a0a',
-          border: '1px solid #1a1a1a',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-      >
+      <Card className="card" style={{ flex: 1, overflow: 'hidden', position: 'relative', minHeight: '600px' }}>
         <ConfigGraph />
-      </Paper>
-    </Box>
+      </Card>
+    </div>
   );
 }
 

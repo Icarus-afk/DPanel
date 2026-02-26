@@ -1,19 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Box, Stack, UnstyledButton, Group, Text, Tooltip, Divider } from '@mantine/core';
-import {
-  IconLayoutDashboard,
-  IconBrandDocker,
-  IconSettings,
-  IconWorld,
-  IconClock,
-  IconFileStack,
-  IconTerminal,
-  IconShield,
-  IconUsers,
-  IconTopologyStar,
-} from '@tabler/icons-react';
 import { useServer } from '../../context/ServerContext';
+import { Icons } from '../../lib/icons';
 import logo from '../../assets/logo.png';
 
 type View = 'dashboard' | 'docker' | 'services' | 'nginx' | 'cron' | 'logs' | 'commands' | 'firewall' | 'users' | 'infrastructure';
@@ -24,20 +13,20 @@ interface NavigationRailProps {
 }
 
 const menuItems: { id: View; label: string; icon: React.ReactNode }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: <IconLayoutDashboard size={20} /> },
-  { id: 'docker', label: 'Docker', icon: <IconBrandDocker size={20} /> },
-  { id: 'services', label: 'Services', icon: <IconSettings size={20} /> },
-  { id: 'nginx', label: 'Nginx', icon: <IconWorld size={20} /> },
-  { id: 'cron', label: 'Cron', icon: <IconClock size={20} /> },
-  { id: 'logs', label: 'Logs', icon: <IconFileStack size={20} /> },
-  { id: 'commands', label: 'Commands', icon: <IconTerminal size={20} /> },
-  { id: 'firewall', label: 'Firewall', icon: <IconShield size={20} /> },
-  { id: 'users', label: 'Users', icon: <IconUsers size={20} /> },
-  { id: 'infrastructure', label: 'Infrastructure', icon: <IconTopologyStar size={20} /> },
+  { id: 'dashboard', label: 'Dashboard', icon: <Icons.Dashboard size={20} /> },
+  { id: 'docker', label: 'Docker', icon: <Icons.Docker size={20} /> },
+  { id: 'services', label: 'Services', icon: <Icons.Settings size={20} /> },
+  { id: 'nginx', label: 'Nginx', icon: <Icons.World size={20} /> },
+  { id: 'cron', label: 'Cron', icon: <Icons.Clock size={20} /> },
+  { id: 'logs', label: 'Logs', icon: <Icons.FileStack size={20} /> },
+  { id: 'commands', label: 'Commands', icon: <Icons.Terminal size={20} /> },
+  { id: 'firewall', label: 'Firewall', icon: <Icons.Shield size={20} /> },
+  { id: 'users', label: 'Users', icon: <Icons.Users size={20} /> },
+  { id: 'infrastructure', label: 'Infrastructure', icon: <Icons.TopologyStar size={20} /> },
 ];
 
 const SIDEBAR_TRANSITION = {
-  duration: 0.2,
+  duration: 0.3,
   ease: [0.4, 0.0, 0.2, 1],
 };
 
@@ -46,44 +35,21 @@ export function NavigationRail({ currentView, onViewChange }: NavigationRailProp
   const { isConnected } = useServer();
 
   return (
-    <motion.div
+    <motion.nav
+      className="nav-rail"
       style={{
-        width: expanded ? 240 : 72,
-        height: '100vh',
-        background: '#0a0a0a',
-        borderRight: '1px solid #1a1a1a',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        overflow: 'hidden',
+        width: expanded ? 260 : 72,
       }}
-      animate={{ width: expanded ? 240 : 72 }}
+      animate={{ width: expanded ? 260 : 72 }}
       transition={SIDEBAR_TRANSITION}
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
     >
       {/* Logo Section */}
-      <Box style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
+      <Box className="nav-rail__header">
         <Group gap="md" justify="center" wrap="nowrap">
-          <Box
-            style={{
-              width: 40,
-              height: 40,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <img
-              src={logo}
-              alt="DPanel"
-              style={{
-                width: 40,
-                height: 40,
-                objectFit: 'contain',
-              }}
-            />
+          <Box className="nav-rail__logo">
+            <img src={logo} alt="DPanel" style={{ width: 40, height: 40, objectFit: 'contain' }} />
           </Box>
 
           <AnimatePresence>
@@ -98,7 +64,7 @@ export function NavigationRail({ currentView, onViewChange }: NavigationRailProp
                 <Text
                   size="xl"
                   fw={800}
-                  c="white"
+                  c="var(--text-primary)"
                   style={{ letterSpacing: '-1px', whiteSpace: 'nowrap' }}
                 >
                   DPanel
@@ -109,12 +75,13 @@ export function NavigationRail({ currentView, onViewChange }: NavigationRailProp
         </Group>
       </Box>
 
-      <Divider my="xs" style={{ borderColor: '#1a1a1a' }} />
+      <Divider my="xs" style={{ borderColor: 'hsl(var(--border-subtle))' }} />
 
       {/* Navigation Items */}
-      <Stack gap={2} style={{ padding: '8px', flex: 1 }}>
+      <Stack gap={2} className="nav-rail__body">
         {menuItems.map((item) => {
           const isActive = currentView === item.id;
+          const isDisabled = !isConnected;
 
           return (
             <Tooltip
@@ -124,52 +91,33 @@ export function NavigationRail({ currentView, onViewChange }: NavigationRailProp
               withArrow
               arrowSize={6}
               disabled={expanded}
+              transitionProps={{ duration: 100 }}
             >
               <UnstyledButton
-                onClick={() => isConnected && onViewChange(item.id)}
-                disabled={!isConnected}
+                onClick={() => !isDisabled && onViewChange(item.id)}
+                disabled={isDisabled}
                 style={{ width: '100%' }}
               >
                 <Box
+                  className={`nav-item ${isActive ? 'nav-item--active' : ''} ${isDisabled ? 'nav-item--disabled' : ''}`}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: expanded ? 'flex-start' : 'center',
-                    gap: '12px',
-                    padding: '10px',
-                    borderRadius: '8px',
-                    background: isActive ? '#1a1a1a' : 'transparent',
-                    cursor: isConnected ? 'pointer' : 'not-allowed',
-                    opacity: isConnected ? 1 : 0.5,
-                    transition: 'background 0.15s ease',
-                    minHeight: 44,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (isConnected && !isActive) {
-                      e.currentTarget.style.background = '#151515';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (isConnected && !isActive) {
-                      e.currentTarget.style.background = 'transparent';
-                    }
+                    background: isActive && expanded ? 'hsl(var(--bg-elevated))' : 'transparent',
+                    border: isActive && expanded ? '1px solid hsl(var(--border-default))' : '1px solid transparent',
+                    color: isActive ? 'hsl(var(--text-primary))' : 'hsl(var(--text-tertiary))',
+                    opacity: isDisabled ? 0.5 : 1,
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    position: 'relative',
                   }}
                 >
                   <Box
+                    className="nav-item__icon"
                     style={{
-                      width: 40,
-                      height: 40,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '8px',
-                      background: isActive ? '#ffffff' : 'transparent',
-                      flexShrink: 0,
+                      background: isActive ? 'hsl(var(--primary))' : 'transparent',
+                      color: isActive ? 'white' : 'currentColor',
+                      boxShadow: isActive ? 'var(--shadow-glow-primary)' : 'none',
                     }}
                   >
-                    <Box style={{ color: isActive ? '#000000' : '#888888' }}>
-                      {item.icon}
-                    </Box>
+                    {item.icon}
                   </Box>
 
                   <AnimatePresence>
@@ -184,7 +132,7 @@ export function NavigationRail({ currentView, onViewChange }: NavigationRailProp
                         <Text
                           size="sm"
                           fw={isActive ? 600 : 500}
-                          c={isActive ? 'white' : 'dimmed'}
+                          c={isActive ? 'var(--text-primary)' : 'var(--text-tertiary)'}
                           style={{ whiteSpace: 'nowrap' }}
                         >
                           {item.label}
@@ -198,6 +146,9 @@ export function NavigationRail({ currentView, onViewChange }: NavigationRailProp
           );
         })}
       </Stack>
-    </motion.div>
+
+      {/* Footer spacer */}
+      <Box className="nav-rail__footer" />
+    </motion.nav>
   );
 }

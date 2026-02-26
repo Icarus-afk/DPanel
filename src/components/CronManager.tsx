@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useServer } from '../context/ServerContext';
 import { useToast } from '../context/ToastContext';
@@ -36,7 +36,7 @@ const SCHEDULE_PRESETS = [
   { label: 'Every 30 minutes (*/30 * * * *)', value: '*/30 * * * *' },
 ];
 
-export default function CronManager() {
+const CronManager = memo(function CronManager() {
   const { isConnected } = useServer();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -192,14 +192,30 @@ export default function CronManager() {
 
   if (!isConnected) {
     return (
-      <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-dark-6)">
-        <Stack align="center" gap="md">
-          <ThemeIcon size="lg" variant="light" color="gray">
-            <IconClock size={24} />
-          </ThemeIcon>
-          <Text c="dimmed">Connect to a server to manage cron jobs</Text>
-        </Stack>
-      </Paper>
+      <div className="page-container animate-fade-in-up">
+        <Card className="card card-elevated" style={{ maxWidth: 500, margin: '0 auto' }}>
+          <Stack align="center" gap="md" style={{ padding: 'var(--space-8)' }}>
+            <Box
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 'var(--radius-full)',
+                background: 'hsl(var(--bg-tertiary))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--text-tertiary))',
+              }}
+            >
+              <IconClock size={32} />
+            </Box>
+            <Text size="xl" fw={600} c="var(--text-primary)">Cron Job Manager</Text>
+            <Text size="sm" c="var(--text-secondary)" style={{ textAlign: 'center' }}>
+              Connect to a server to manage cron jobs
+            </Text>
+          </Stack>
+        </Card>
+      </div>
     );
   }
 
@@ -207,23 +223,36 @@ export default function CronManager() {
   const systemLines = parseCrontabLines(systemCrontab);
 
   return (
-    <Stack gap="md" h="calc(100vh - 140px)">
+    <div className="page-container animate-fade-in-up">
       {/* Header */}
-      <Group justify="space-between">
+      <Group justify="space-between" className="mb-6" style={{ marginBottom: 'var(--space-6)' }}>
         <Group gap="sm">
-          <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'orange', to: 'red' }}>
-            <IconClock size={20} />
-          </ThemeIcon>
+          <Box
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 'var(--radius-lg)',
+              background: 'hsl(var(--warning-subtle))',
+              border: '1px solid hsl(var(--warning-border))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'hsl(var(--warning))',
+            }}
+          >
+            <IconClock size={24} />
+          </Box>
           <Stack gap={0}>
-            <Title order={3}>Cron Job Manager</Title>
-            <Text size="xs" c="dimmed">Manage scheduled tasks and cron jobs</Text>
+            <Title order={3} style={{ color: 'hsl(var(--text-primary))', fontSize: 'var(--text-lg)', fontWeight: 600 }}>
+              Cron Job Manager
+            </Title>
+            <Text size="xs" c="var(--text-tertiary)">Manage scheduled tasks and cron jobs</Text>
           </Stack>
         </Group>
         <Group gap="xs">
           <Button
-            variant="outline"
-            color="blue"
-            leftSection={<IconRefresh size={18} />}
+            variant="subtle"
+            size="compact-sm"
             onClick={() => {
               fetchUserCrontab();
               fetchSystemCrontab();
@@ -231,31 +260,44 @@ export default function CronManager() {
               fetchCronFolders();
             }}
             loading={loading}
-            size="sm"
+            leftSection={<IconRefresh size={16} />}
+            style={{
+              background: 'hsl(var(--bg-tertiary))',
+              color: 'hsl(var(--text-primary))',
+              border: '1px solid hsl(var(--border-default))',
+            }}
           >
             Refresh
           </Button>
           <Button
-            color="green"
-            leftSection={<IconPlus size={18} />}
+            size="compact-sm"
+            style={{
+              background: 'hsl(var(--success))',
+              color: 'white',
+            }}
+            leftSection={<IconPlus size={16} />}
             onClick={() => setShowAddModal(true)}
-            size="sm"
           >
             Add Job
           </Button>
           <Button
-            variant="outline"
-            leftSection={<IconFileText size={18} />}
+            variant="subtle"
+            size="compact-sm"
             onClick={viewLogs}
-            size="sm"
+            leftSection={<IconFileText size={16} />}
+            style={{
+              background: 'hsl(var(--bg-tertiary))',
+              color: 'hsl(var(--text-primary))',
+              border: '1px solid hsl(var(--border-default))',
+            }}
           >
             View Logs
           </Button>
         </Group>
       </Group>
 
-      <Tabs value={activeTab} onChange={(v) => setActiveTab(v || 'user')}>
-        <Tabs.List>
+      <Tabs value={activeTab} onChange={(v) => setActiveTab(v || 'user')} variant="pills">
+        <Tabs.List style={{ marginBottom: 'var(--space-4)' }}>
           <Tabs.Tab value="user">User Crontab</Tabs.Tab>
           <Tabs.Tab value="system">System Crontab</Tabs.Tab>
           <Tabs.Tab value="crond">/etc/cron.d ({cronDJobs.length})</Tabs.Tab>
@@ -266,12 +308,15 @@ export default function CronManager() {
         <Tabs.Panel value="user" pt="md">
           <Grid gutter="md">
             <Grid.Col span={{ base: 12, lg: 8 }}>
-              <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card">
                 <Group justify="space-between" mb="md">
-                  <Text fw={600}>Edit User Crontab</Text>
+                  <Text fw={600} size="sm" style={{ color: 'hsl(var(--text-primary))' }}>Edit User Crontab</Text>
                   <Button
                     size="sm"
-                    color="green"
+                    style={{
+                      background: 'hsl(var(--success))',
+                      color: 'white',
+                    }}
                     onClick={handleSaveUserCrontab}
                     loading={loading}
                   >
@@ -284,10 +329,16 @@ export default function CronManager() {
                   autosize
                   minRows={15}
                   maxRows={25}
-                  style={{ fontFamily: 'monospace', fontSize: 12 }}
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 'var(--text-xs)',
+                    background: 'hsl(var(--bg-tertiary))',
+                    border: '1px solid hsl(var(--border-subtle))',
+                    color: 'hsl(var(--text-primary))',
+                  }}
                   placeholder="# Format: minute hour day month weekday command"
                 />
-                <Text size="xs" c="dimmed" mt="sm">
+                <Text size="xs" c="var(--text-tertiary)" mt="sm">
                   Format: minute hour day month weekday command<br />
                   Example: */5 * * * * /usr/local/bin/backup.sh
                 </Text>
@@ -295,34 +346,47 @@ export default function CronManager() {
             </Grid.Col>
 
             <Grid.Col span={{ base: 12, lg: 4 }}>
-              <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
-                <Text fw={600} mb="md">Current Jobs</Text>
+              <Card className="card">
+                <Text fw={600} size="sm" style={{ color: 'hsl(var(--text-primary))', marginBottom: 'var(--space-4)' }}>Current Jobs</Text>
                 <ScrollArea.Autosize mah={400}>
                   <Stack gap="xs">
                     {userLines.filter(l => l.isValid).map((job, idx) => (
-                      <Paper key={idx} withBorder p="sm" radius="md" bg="var(--mantine-color-dark-7)">
+                      <Paper
+                        key={idx}
+                        withBorder
+                        p="sm"
+                        radius="md"
+                        style={{
+                          background: 'hsl(var(--bg-tertiary))',
+                          border: '1px solid hsl(var(--border-subtle))',
+                        }}
+                      >
                         <Group justify="space-between">
                           <Stack gap={0} style={{ flex: 1 }}>
-                            <Text size="xs" style={{ fontFamily: 'monospace' }} c="blue">
+                            <Text size="xs" style={{ fontFamily: 'var(--font-mono)', color: 'hsl(var(--primary))' }}>
                               {job.line.split(' ').slice(0, 5).join(' ')}
                             </Text>
-                            <Text size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>
+                            <Text size="xs" c="var(--text-tertiary)" style={{ fontFamily: 'var(--font-mono)' }}>
                               {job.line.split(' ').slice(5).join(' ')}
                             </Text>
                           </Stack>
                           <Group gap="xs">
                             <ActionIcon
                               size="sm"
-                              variant={job.line.trim().startsWith('#') ? 'light' : 'light'}
-                              color={job.line.trim().startsWith('#') ? 'gray' : 'green'}
+                              style={{
+                                background: job.line.trim().startsWith('#') ? 'hsl(var(--bg-tertiary))' : 'hsl(var(--success-subtle))',
+                                color: job.line.trim().startsWith('#') ? 'hsl(var(--text-tertiary))' : 'hsl(var(--success))',
+                              }}
                               onClick={() => handleToggleJob(job.index, job.line.trim().startsWith('#'))}
                             >
                               {job.line.trim().startsWith('#') ? <IconToggleRight size={18} /> : <IconToggleLeft size={18} />}
                             </ActionIcon>
                             <ActionIcon
                               size="sm"
-                              variant="light"
-                              color="red"
+                              style={{
+                                background: 'hsl(var(--error-subtle))',
+                                color: 'hsl(var(--error))',
+                              }}
                               onClick={() => handleDeleteJob(job.index)}
                             >
                               <IconTrash size={18} />
@@ -332,7 +396,7 @@ export default function CronManager() {
                       </Paper>
                     ))}
                     {userLines.filter(l => l.isValid).length === 0 && (
-                      <Text c="dimmed" ta="center" size="sm">No cron jobs configured</Text>
+                      <Text c="var(--text-tertiary)" ta="center" size="sm">No cron jobs configured</Text>
                     )}
                   </Stack>
                 </ScrollArea.Autosize>
@@ -343,17 +407,19 @@ export default function CronManager() {
 
         {/* System Crontab Tab */}
         <Tabs.Panel value="system" pt="md">
-          <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
-            <Text fw={600} mb="md">/etc/crontab (Read-only)</Text>
+          <Card className="card">
+            <Text fw={600} size="sm" style={{ color: 'hsl(var(--text-primary))', marginBottom: 'var(--space-4)' }}>/etc/crontab (Read-only)</Text>
             <ScrollArea.Autosize mah={500}>
               <Box
                 component="pre"
                 p="md"
-                bg="var(--mantine-color-dark-8)"
                 style={{
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  borderRadius: 'var(--mantine-radius-md)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xs)',
+                  backgroundColor: 'hsl(var(--bg-tertiary))',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid hsl(var(--border-subtle))',
+                  color: 'hsl(var(--text-secondary))',
                 }}
               >
                 {systemCrontab || 'No system crontab found'}
@@ -365,38 +431,46 @@ export default function CronManager() {
         {/* /etc/cron.d Tab */}
         <Tabs.Panel value="crond" pt="md">
           {cronDJobs.length === 0 ? (
-            <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-dark-6)">
+            <Card className="card card-elevated">
               <Center>
-                <Text c="dimmed">No jobs in /etc/cron.d</Text>
+                <Text c="var(--text-tertiary)">No jobs in /etc/cron.d</Text>
               </Center>
-            </Paper>
+            </Card>
           ) : (
-            <Paper withBorder radius="md" bg="var(--mantine-color-dark-6)">
+            <Card className="card">
               <Table>
                 <Table.Thead>
                   <Table.Tr>
-                    <Table.Th>Schedule</Table.Th>
-                    <Table.Th>User</Table.Th>
-                    <Table.Th>Command</Table.Th>
-                    <Table.Th>Source</Table.Th>
-                    <Table.Th>Status</Table.Th>
+                    <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Schedule</Table.Th>
+                    <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>User</Table.Th>
+                    <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Command</Table.Th>
+                    <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Source</Table.Th>
+                    <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Status</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   {cronDJobs.map((job) => (
                     <Table.Tr key={`${job.source}-${job.id}`}>
                       <Table.Td>
-                        <Code>{job.schedule}</Code>
+                        <Code style={{ background: 'hsl(var(--bg-tertiary))', color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary-border))' }}>
+                          {job.schedule}
+                        </Code>
                       </Table.Td>
-                      <Table.Td>{job.user}</Table.Td>
+                      <Table.Td style={{ color: 'hsl(var(--text-primary))' }}>{job.user}</Table.Td>
                       <Table.Td>
-                        <Text size="sm" style={{ fontFamily: 'monospace' }}>{job.command}</Text>
+                        <Text size="sm" style={{ fontFamily: 'var(--font-mono)', color: 'hsl(var(--text-primary))' }}>{job.command}</Text>
                       </Table.Td>
+                      <Table.Td c="var(--text-tertiary)">{job.source}</Table.Td>
                       <Table.Td>
-                        <Text size="xs" c="dimmed">{job.source}</Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Badge color={job.enabled ? 'green' : 'gray'} variant="light">
+                        <Badge
+                          size="sm"
+                          variant="light"
+                          style={{
+                            background: job.enabled ? 'hsl(var(--success-subtle))' : 'hsl(var(--bg-tertiary))',
+                            color: job.enabled ? 'hsl(var(--success))' : 'hsl(var(--text-tertiary))',
+                            border: `1px solid hsl(var(--${job.enabled ? 'success' : 'border-default'}-border))`,
+                          }}
+                        >
                           {job.enabled ? 'Active' : 'Disabled'}
                         </Badge>
                       </Table.Td>
@@ -404,7 +478,7 @@ export default function CronManager() {
                   ))}
                 </Table.Tbody>
               </Table>
-            </Paper>
+            </Card>
           )}
         </Tabs.Panel>
 
@@ -413,21 +487,36 @@ export default function CronManager() {
           <Grid gutter="md">
             {cronFolders.map((folder) => (
               <Grid.Col span={{ base: 12, md: 6 }} key={folder.name}>
-                <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
+                <Card className="card card-hover">
                   <Group mb="sm">
-                    <IconFolder size={20} color="var(--mantine-color-blue-filled)" />
-                    <Text fw={600}>{folder.name}</Text>
+                    <Box
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 'var(--radius-md)',
+                        background: 'hsl(var(--primary-subtle))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'hsl(var(--primary))',
+                      }}
+                    >
+                      <IconFolder size={20} />
+                    </Box>
+                    <Stack gap={0}>
+                      <Text fw={600} size="sm" style={{ color: 'hsl(var(--text-primary))' }}>{folder.name}</Text>
+                      <Text size="xs" c="var(--text-tertiary)" style={{ fontFamily: 'var(--font-mono)' }}>
+                        {folder.path}
+                      </Text>
+                    </Stack>
                   </Group>
-                  <Text size="xs" c="dimmed" mb="sm" style={{ fontFamily: 'monospace' }}>
-                    {folder.path}
-                  </Text>
-                  <Divider my="xs" />
+                  <Divider my="xs" style={{ borderColor: 'hsl(var(--border-subtle))' }} />
                   <ScrollArea.Autosize mah={200}>
                     <Stack gap="xs">
                       {folder.scripts.map((script) => (
                         <Group key={script} gap="xs">
-                          <IconFileText size={14} color="var(--mantine-color-dimmed)" />
-                          <Text size="sm" style={{ fontFamily: 'monospace' }}>{script}</Text>
+                          <IconFileText size={14} style={{ color: 'hsl(var(--text-tertiary))' }} />
+                          <Text size="sm" style={{ fontFamily: 'var(--font-mono)', color: 'hsl(var(--text-primary))' }}>{script}</Text>
                         </Group>
                       ))}
                     </Stack>
@@ -437,11 +526,11 @@ export default function CronManager() {
             ))}
             {cronFolders.length === 0 && (
               <Grid.Col span={12}>
-                <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-dark-6)">
+                <Card className="card card-elevated">
                   <Center>
-                    <Text c="dimmed">No cron folders found</Text>
+                    <Text c="var(--text-tertiary)">No cron folders found</Text>
                   </Center>
-                </Paper>
+                </Card>
               </Grid.Col>
             )}
           </Grid>
@@ -454,10 +543,36 @@ export default function CronManager() {
         onClose={() => setShowAddModal(false)}
         title={
           <Group gap="sm">
-            <IconClock size={20} />
-            <Text fw={600}>Add Cron Job</Text>
+            <Box
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-md)',
+                background: 'hsl(var(--warning-subtle))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--warning))',
+              }}
+            >
+              <IconClock size={16} />
+            </Box>
+            <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Add Cron Job</Text>
           </Group>
         }
+        centered
+        styles={{
+          content: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+            border: '1px solid hsl(var(--border-default))',
+          },
+          header: {
+            borderBottom: '1px solid hsl(var(--border-subtle))',
+          },
+          body: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+          },
+        }}
       >
         <Stack gap="md">
           <Select
@@ -468,6 +583,13 @@ export default function CronManager() {
             onChange={(v) => setNewSchedule(v || '')}
             searchable
             clearable
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+            }}
           />
           <TextInput
             label="Cron Schedule"
@@ -475,6 +597,13 @@ export default function CronManager() {
             value={newSchedule}
             onChange={(e) => setNewSchedule(e.target.value)}
             description="Format: minute hour day month weekday"
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+            }}
           />
           <TextInput
             label="Command"
@@ -482,12 +611,34 @@ export default function CronManager() {
             value={newCommand}
             onChange={(e) => setNewCommand(e.target.value)}
             description="Full path to the command or script"
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+            }}
           />
           <Group justify="flex-end" mt="md">
-            <Button variant="outline" onClick={() => setShowAddModal(false)}>
+            <Button
+              variant="subtle"
+              onClick={() => setShowAddModal(false)}
+              style={{
+                background: 'hsl(var(--bg-tertiary))',
+                color: 'hsl(var(--text-primary))',
+                border: '1px solid hsl(var(--border-default))',
+              }}
+            >
               Cancel
             </Button>
-            <Button onClick={handleAddJob} loading={loading}>
+            <Button
+              style={{
+                background: 'hsl(var(--success))',
+                color: 'white',
+              }}
+              onClick={handleAddJob}
+              loading={loading}
+            >
               Add Job
             </Button>
           </Group>
@@ -500,27 +651,57 @@ export default function CronManager() {
         onClose={() => setShowLogsModal(false)}
         title={
           <Group gap="sm">
-            <IconFileText size={20} />
-            <Text fw={600}>Cron Logs</Text>
+            <Box
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-md)',
+                background: 'hsl(var(--primary-subtle))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--primary))',
+              }}
+            >
+              <IconFileText size={16} />
+            </Box>
+            <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Cron Logs</Text>
           </Group>
         }
         size="xl"
+        centered
+        styles={{
+          content: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+            border: '1px solid hsl(var(--border-default))',
+          },
+          header: {
+            borderBottom: '1px solid hsl(var(--border-subtle))',
+          },
+          body: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+          },
+        }}
       >
         <ScrollArea.Autosize mah={500}>
           <Box
             component="pre"
             p="md"
-            bg="var(--mantine-color-dark-8)"
             style={{
-              fontFamily: 'monospace',
-              fontSize: 12,
-              borderRadius: 'var(--mantine-radius-md)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              backgroundColor: 'hsl(var(--bg-tertiary))',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid hsl(var(--border-subtle))',
+              color: 'hsl(var(--text-secondary))',
             }}
           >
             {cronLogs || 'No cron logs found'}
           </Box>
         </ScrollArea.Autosize>
       </Modal>
-    </Stack>
+    </div>
   );
-}
+});
+
+export default CronManager;

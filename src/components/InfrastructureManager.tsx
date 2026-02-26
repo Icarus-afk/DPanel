@@ -1,42 +1,43 @@
-import { Box, Text, Group, Paper } from '@mantine/core';
-import { IconTopologyStar } from '@tabler/icons-react';
+import { Box, Text, Group, Stack, Card } from '@mantine/core';
+import { Icons } from '../lib/icons';
 import { InfrastructureGraphView } from './infrastructure-graph/InfrastructureGraphView';
 
 export default function InfrastructureManager() {
   return (
-    <Box
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+    <div className="page-container animate-fade-in-up">
       {/* Header */}
-      <Box style={{ marginBottom: 24 }}>
+      <Box style={{ marginBottom: 'var(--space-6)' }}>
         <Group gap="sm" mb="xs">
-          <IconTopologyStar size={32} color="#f59e0b" />
-          <Text size="xl" fw={700} c="white">
-            Infrastructure Graph
-          </Text>
+          <Box
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 'var(--radius-lg)',
+              background: 'hsl(var(--warning-subtle))',
+              border: '1px solid hsl(var(--warning-border))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'hsl(var(--warning))',
+            }}
+          >
+            <Icons.TopologyStar size={24} />
+          </Box>
+          <Stack gap={0}>
+            <Text size="xl" fw={700} style={{ color: 'hsl(var(--text-primary))', fontSize: 'var(--text-lg)' }}>
+              Infrastructure Graph
+            </Text>
+            <Text size="sm" c="var(--text-tertiary)">
+              Visualize how nginx, Docker containers, volumes, and networks are connected on your server
+            </Text>
+          </Stack>
         </Group>
-        <Text size="sm" c="dimmed">
-          Visualize how nginx, Docker containers, volumes, and networks are connected on your server
-        </Text>
       </Box>
 
       {/* Graph Container */}
-      <Paper
-        style={{
-          flex: 1,
-          background: '#0a0a0a',
-          border: '1px solid #1a1a1a',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-      >
+      <Card className="card" style={{ flex: 1, overflow: 'hidden', position: 'relative', minHeight: '600px' }}>
         <InfrastructureGraphView />
-      </Paper>
-    </Box>
+      </Card>
+    </div>
   );
 }

@@ -1,0 +1,380 @@
+/**
+ * Top Bar Component Styles
+ * Modern header with server status, search, and actions
+ */
+
+/* ===== TOP BAR ===== */
+
+.topbar {
+  height: var(--header-height);
+  background: hsl(var(--bg-primary));
+  border-bottom: 1px solid hsl(var(--border-subtle));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  backdrop-filter: blur(8px);
+  flex-shrink: 0;
+}
+
+/* ===== TOP BAR LEFT SECTION ===== */
+
+.topbar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Server Status */
+.topbar__server-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: hsl(var(--bg-secondary));
+  border: 1px solid hsl(var(--border-subtle));
+  border-radius: var(--radius-lg);
+  min-width: 200px;
+  transition: all var(--duration-fast) var(--easing-default);
+}
+
+.topbar__server-status:hover {
+  border-color: hsl(var(--border-default));
+}
+
+.topbar__status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  animation: pulse 2s var(--easing-in-out) infinite;
+  flex-shrink: 0;
+}
+
+.topbar__status-indicator--connected {
+  background: hsl(var(--success));
+  box-shadow: 0 0 8px hsl(var(--success-glow));
+}
+
+.topbar__status-indicator--disconnected {
+  background: hsl(var(--error));
+  box-shadow: 0 0 8px hsl(var(--error-glow));
+}
+
+.topbar__status-indicator--connecting {
+  background: hsl(var(--warning));
+  box-shadow: 0 0 8px hsl(var(--warning-glow));
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.topbar__server-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+.topbar__server-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: hsl(var(--text-primary));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__server-label {
+  font-size: var(--text-xs);
+  color: hsl(var(--text-tertiary));
+}
+
+.topbar__status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  margin-left: var(--space-2);
+}
+
+.topbar__status-badge--connected {
+  background: hsl(var(--success-subtle));
+  color: hsl(var(--success));
+}
+
+.topbar__status-badge--disconnected {
+  background: hsl(var(--error-subtle));
+  color: hsl(var(--error));
+}
+
+.topbar__status-badge--connecting {
+  background: hsl(var(--warning-subtle));
+  color: hsl(var(--warning));
+}
+
+/* ===== TOP BAR CENTER SECTION (Search) ===== */
+
+.topbar__center {
+  flex: 1;
+  max-width: 480px;
+  margin: 0 var(--space-4);
+}
+
+.topbar__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: hsl(var(--bg-secondary));
+  border: 1px solid hsl(var(--border-subtle));
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-fast) var(--easing-default);
+}
+
+.topbar__search:focus-within {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary-subtle));
+}
+
+.topbar__search-icon {
+  flex-shrink: 0;
+  color: hsl(var(--text-tertiary));
+}
+
+.topbar__search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: hsl(var(--text-primary));
+  font-size: var(--text-sm);
+  outline: none;
+  padding: 0;
+}
+
+.topbar__search-input::placeholder {
+  color: hsl(var(--text-tertiary));
+}
+
+.topbar__search-shortcut {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  background: hsl(var(--bg-tertiary));
+  border: 1px solid hsl(var(--border-default));
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: hsl(var(--text-tertiary));
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+/* ===== TOP BAR RIGHT SECTION ===== */
+
+.topbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Action Buttons */
+.topbar__action {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--bg-secondary));
+  border: 1px solid hsl(var(--border-subtle));
+  color: hsl(var(--text-secondary));
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-default);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.topbar__action:hover:not(:disabled) {
+  background: hsl(var(--bg-tertiary));
+  color: hsl(var(--text-primary));
+  border-color: hsl(var(--border-default));
+}
+
+.topbar__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.topbar__action--active {
+  background: hsl(var(--primary-subtle));
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary-border));
+}
+
+/* Notification Dot */
+.topbar__notification-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: hsl(var(--error));
+  border-radius: var(--radius-full);
+  border: 2px solid hsl(var(--bg-primary));
+  animation: ping 2s var(--easing-out) infinite;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Disconnect Button */
+.topbar__disconnect {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: hsl(var(--error-subtle));
+  border: 1px solid hsl(var(--error-border));
+  border-radius: var(--radius-lg);
+  color: hsl(var(--error));
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-default);
+  font-family: var(--font-family);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.topbar__disconnect:hover {
+  background: hsl(var(--error-subtle));
+  border-color: hsl(var(--error));
+}
+
+/* ===== DROPDOWN MENU ===== */
+
+.topbar__dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 280px;
+  background: hsl(var(--bg-elevated));
+  border: 1px solid hsl(var(--border-default));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  z-index: var(--z-dropdown);
+  overflow: hidden;
+}
+
+.topbar__dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid hsl(var(--border-subtle));
+}
+
+.topbar__dropdown-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: hsl(var(--text-primary));
+}
+
+.topbar__dropdown-list {
+  list-style: none;
+  padding: var(--space-2);
+  margin: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.topbar__dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-default);
+}
+
+.topbar__dropdown-item:hover {
+  background: hsl(var(--bg-tertiary));
+}
+
+.topbar__dropdown-item--active {
+  background: hsl(var(--primary-subtle));
+  color: hsl(var(--primary));
+}
+
+/* ===== MOBILE TOGGLE ===== */
+
+.topbar__mobile-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: hsl(var(--bg-secondary));
+  border: 1px solid hsl(var(--border-subtle));
+  color: hsl(var(--text-secondary));
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .topbar__mobile-toggle {
+    display: flex;
+  }
+  
+  .topbar__left {
+    gap: var(--space-2);
+  }
+  
+  .topbar__server-status {
+    min-width: auto;
+  }
+  
+  .topbar__server-label,
+  .topbar__status-badge {
+    display: none;
+  }
+  
+  .topbar__center {
+    display: none;
+  }
+}
+
+/* ===== BREADCRUMB (optional) ===== */
+
+.topbar__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: hsl(var(--text-secondary));
+}
+
+.topbar__breadcrumb-separator {
+  color: hsl(var(--text-tertiary));
+}
+
+.topbar__breadcrumb-current {
+  color: hsl(var(--text-primary));
+  font-weight: var(--font-medium);
+}

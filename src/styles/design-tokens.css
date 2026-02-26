@@ -1,0 +1,226 @@
+/**
+ * DPanel Design Tokens
+ * Modern, cohesive design system with HSL-based color palette
+ */
+
+:root {
+  /* ===== HUE DEFINITIONS ===== */
+  --hue-primary: 221;    /* Blue - Primary brand color */
+  --hue-success: 158;    /* Emerald - Success states */
+  --hue-warning: 38;     /* Amber - Warning states */
+  --hue-error: 0;        /* Red - Error states */
+  --hue-info: 199;       /* Cyan - Info states */
+  --hue-violet: 263;     /* Violet - Secondary accent */
+  --hue-pink: 330;       /* Pink - Tertiary accent */
+
+  /* ===== NEUTRAL SCALE (Backgrounds) ===== */
+  --bg-primary: 0 0% 4%;         /* #0a0a0a - Main app background */
+  --bg-secondary: 0 0% 7%;       /* #111111 - Surface level 1 */
+  --bg-tertiary: 0 0% 10%;       /* #1a1a1a - Surface level 2 */
+  --bg-elevated: 0 0% 13%;       /* #222222 - Surface level 3 */
+  --bg-overlay: 0 0% 15%;        /* #262626 - Modals, dropdowns */
+  --bg-hover: 0 0% 12%;          /* #1f1f1f - Hover states */
+
+  /* ===== NEUTRAL SCALE (Borders) ===== */
+  --border-subtle: 0 0% 10%;     /* #1a1a1a - Default subtle borders */
+  --border-default: 0 0% 15%;    /* #262626 - Standard borders */
+  --border-strong: 0 0% 25%;     /* #404040 - Emphasized borders */
+  --border-focus: 0 0% 35%;      /* #595959 - Focus rings */
+
+  /* ===== NEUTRAL SCALE (Text) ===== */
+  --text-primary: 0 0% 98%;      /* #fafafa - Primary text */
+  --text-secondary: 0 0% 70%;    /* #b3b3b3 - Secondary text */
+  --text-tertiary: 0 0% 50%;     /* #808080 - Tertiary text */
+  --text-disabled: 0 0% 35%;     /* #595959 - Disabled text */
+  --text-inverse: 0 0% 0%;       /* #000000 - Text on light backgrounds */
+
+  /* ===== SEMANTIC COLORS (Primary/Brand) ===== */
+  --primary: var(--hue-primary) 84% 60%;
+  --primary-hover: var(--hue-primary) 84% 55%;
+  --primary-active: var(--hue-primary) 84% 50%;
+  --primary-subtle: var(--hue-primary) 84% 60% / 0.1;
+  --primary-border: var(--hue-primary) 84% 60% / 0.3;
+  --primary-glow: var(--hue-primary) 84% 60% / 0.2;
+
+  /* ===== SEMANTIC COLORS (Success) ===== */
+  --success: var(--hue-success) 76% 46%;
+  --success-hover: var(--hue-success) 76% 42%;
+  --success-subtle: var(--hue-success) 76% 46% / 0.1;
+  --success-border: var(--hue-success) 76% 46% / 0.3;
+  --success-glow: var(--hue-success) 76% 46% / 0.2;
+
+  /* ===== SEMANTIC COLORS (Warning) ===== */
+  --warning: var(--hue-warning) 91% 50%;
+  --warning-hover: var(--hue-warning) 91% 45%;
+  --warning-subtle: var(--hue-warning) 91% 50% / 0.1;
+  --warning-border: var(--hue-warning) 91% 50% / 0.3;
+  --warning-glow: var(--hue-warning) 91% 50% / 0.2;
+
+  /* ===== SEMANTIC COLORS (Error) ===== */
+  --error: var(--hue-error) 84% 60%;
+  --error-hover: var(--hue-error) 84% 55%;
+  --error-subtle: var(--hue-error) 84% 60% / 0.1;
+  --error-border: var(--hue-error) 84% 60% / 0.3;
+  --error-glow: var(--hue-error) 84% 60% / 0.2;
+
+  /* ===== SEMANTIC COLORS (Info) ===== */
+  --info: var(--hue-info) 91% 50%;
+  --info-hover: var(--hue-info) 91% 45%;
+  --info-subtle: var(--hue-info) 91% 50% / 0.1;
+  --info-border: var(--hue-info) 91% 50% / 0.3;
+  --info-glow: var(--hue-info) 91% 50% / 0.2;
+
+  /* ===== CHART COLORS ===== */
+  --chart-1: var(--hue-primary) 84% 60%;    /* Primary blue */
+  --chart-2: var(--hue-success) 76% 46%;    /* Success green */
+  --chart-3: var(--hue-warning) 91% 50%;    /* Warning amber */
+  --chart-4: var(--hue-error) 84% 60%;      /* Error red */
+  --chart-5: var(--hue-info) 91% 50%;       /* Info cyan */
+  --chart-6: var(--hue-violet) 70% 60%;     /* Violet */
+  --chart-7: var(--hue-pink) 70% 60%;       /* Pink */
+
+  /* ===== SHADOWS ===== */
+  --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.3);
+  --shadow-md: 0 4px 8px hsl(0 0% 0% / 0.4);
+  --shadow-lg: 0 8px 16px hsl(0 0% 0% / 0.5);
+  --shadow-xl: 0 16px 32px hsl(0 0% 0% / 0.6);
+  --shadow-2xl: 0 24px 48px hsl(0 0% 0% / 0.7);
+  
+  /* Glow shadows */
+  --shadow-glow-primary: 0 0 24px hsl(var(--primary-glow));
+  --shadow-glow-success: 0 0 24px hsl(var(--success-glow));
+  --shadow-glow-error: 0 0 24px hsl(var(--error-glow));
+  --shadow-glow-info: 0 0 24px hsl(var(--info-glow));
+
+  /* ===== BORDER RADIUS ===== */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-full: 9999px;
+
+  /* ===== SPACING SCALE (8px grid) ===== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ===== TRANSITIONS ===== */
+  --duration-instant: 50ms;
+  --duration-fast: 100ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 400ms;
+  --duration-slowest: 500ms;
+  
+  --easing-default: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --easing-linear: linear;
+  --easing-in: cubic-bezier(0.4, 0.0, 1, 1);
+  --easing-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --easing-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --easing-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --easing-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* ===== TYPOGRAPHY ===== */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+
+  /* Font sizes (responsive with clamp) */
+  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.8125rem);
+  --text-sm: clamp(0.875rem, 0.8rem + 0.375vw, 0.9375rem);
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.0625rem);
+  --text-lg: clamp(1.125rem, 1.05rem + 0.375vw, 1.25rem);
+  --text-xl: clamp(1.25rem, 1.15rem + 0.5vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 1.35rem + 0.75vw, 1.875rem);
+  --text-3xl: clamp(1.875rem, 1.65rem + 1.125vw, 2.25rem);
+  --text-4xl: clamp(2.25rem, 2rem + 1.25vw, 3rem);
+
+  /* Font weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+
+  /* Line heights */
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+
+  /* Letter spacing */
+  --tracking-tighter: -0.02em;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+
+  /* ===== Z-INDEX SCALE ===== */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+  --z-toast: 800;
+
+  /* ===== LAYOUT ===== */
+  --header-height: 64px;
+  --sidebar-width-collapsed: 72px;
+  --sidebar-width-expanded: 260px;
+  --container-max: 1600px;
+}
+
+/* ===== DARK MODE (default) ===== */
+.darker {
+  --bg-primary: 0 0% 2%;
+  --bg-secondary: 0 0% 5%;
+  --bg-tertiary: 0 0% 8%;
+  --bg-elevated: 0 0% 11%;
+}
+
+/* ===== HIGH CONTRAST MODE ===== */
+@media (prefers-contrast: high) {
+  :root {
+    --border-subtle: 0 0% 30%;
+    --border-default: 0 0% 40%;
+    --border-strong: 0 0% 60%;
+    --text-tertiary: 0 0% 60%;
+    --text-disabled: 0 0% 45%;
+  }
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 1ms;
+    --duration-fast: 1ms;
+    --duration-normal: 1ms;
+    --duration-slow: 1ms;
+    --duration-slower: 1ms;
+    --duration-slowest: 1ms;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

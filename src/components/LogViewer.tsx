@@ -3,38 +3,14 @@ import { invoke } from '@tauri-apps/api/core';
 import { useServer } from '../context/ServerContext';
 import { useToast } from '../context/ToastContext';
 import {
-  Paper,
-  Text,
-  Group,
-  TextInput,
-  Button,
-  Title,
-  Stack,
-  ScrollArea,
-  Checkbox,
-  Badge,
-  Grid,
-  ActionIcon,
-  Divider,
-  Loader,
-  Center,
-  ThemeIcon,
-  Tooltip,
-  Box,
+  Paper, Text, Group, TextInput, Button, Title, Stack, ScrollArea,
+  Badge, Grid, ActionIcon, Divider, Loader, Center, Box, Card, SimpleGrid,
 } from '@mantine/core';
 import {
-  IconSearch,
-  IconDownload,
-  IconRefresh,
-  IconFileText,
-  IconBrandDocker,
-  IconWorld,
-  IconCopy,
-  IconTrash,
-  IconTerminal,
-  IconSettings,
-  IconDatabase,
+  IconSearch, IconDownload, IconRefresh, IconFileText, IconBrandDocker,
+  IconWorld, IconCopy, IconTrash, IconTerminal, IconSettings, IconDatabase,
 } from '@tabler/icons-react';
+import { Icons } from '../lib/icons';
 
 type LogType = 'system' | 'service' | 'file' | 'docker' | 'custom';
 
@@ -46,6 +22,7 @@ interface LogPreset {
   icon: React.ReactNode;
   description: string;
   color: string;
+  colorVar: string;
 }
 
 const LOG_PRESETS: LogPreset[] = [
@@ -57,6 +34,7 @@ const LOG_PRESETS: LogPreset[] = [
     icon: <IconWorld size={18} />,
     description: 'Latest system logs via journalctl',
     color: 'blue',
+    colorVar: 'primary',
   },
   {
     id: 'docker',
@@ -66,6 +44,7 @@ const LOG_PRESETS: LogPreset[] = [
     icon: <IconBrandDocker size={18} />,
     description: 'Docker daemon logs',
     color: 'violet',
+    colorVar: 'violet',
   },
   {
     id: 'nginx-error',
@@ -75,6 +54,7 @@ const LOG_PRESETS: LogPreset[] = [
     icon: <IconWorld size={18} />,
     description: 'Nginx error log',
     color: 'green',
+    colorVar: 'success',
   },
   {
     id: 'nginx-access',
@@ -84,6 +64,7 @@ const LOG_PRESETS: LogPreset[] = [
     icon: <IconWorld size={18} />,
     description: 'Nginx access log',
     color: 'green',
+    colorVar: 'success',
   },
   {
     id: 'syslog-file',
@@ -93,6 +74,7 @@ const LOG_PRESETS: LogPreset[] = [
     icon: <IconFileText size={18} />,
     description: 'Traditional syslog file',
     color: 'cyan',
+    colorVar: 'info',
   },
   {
     id: 'auth-log',
@@ -102,6 +84,7 @@ const LOG_PRESETS: LogPreset[] = [
     icon: <IconSettings size={18} />,
     description: 'Authentication logs',
     color: 'orange',
+    colorVar: 'warning',
   },
   {
     id: 'messages',
@@ -111,6 +94,7 @@ const LOG_PRESETS: LogPreset[] = [
     icon: <IconFileText size={18} />,
     description: 'System messages (RHEL/CentOS)',
     color: 'cyan',
+    colorVar: 'info',
   },
   {
     id: 'mysql',
@@ -120,6 +104,7 @@ const LOG_PRESETS: LogPreset[] = [
     icon: <IconDatabase size={18} />,
     description: 'MySQL error log',
     color: 'blue',
+    colorVar: 'primary',
   },
   {
     id: 'postgresql',
@@ -129,6 +114,7 @@ const LOG_PRESETS: LogPreset[] = [
     icon: <IconDatabase size={18} />,
     description: 'PostgreSQL log',
     color: 'blue',
+    colorVar: 'primary',
   },
   {
     id: 'redis',
@@ -138,6 +124,7 @@ const LOG_PRESETS: LogPreset[] = [
     icon: <IconDatabase size={18} />,
     description: 'Redis server log',
     color: 'red',
+    colorVar: 'error',
   },
 ];
 
@@ -177,10 +164,8 @@ export default function LogViewer() {
       let result: string;
 
       if (type === 'system') {
-        // Try journalctl for system logs
         result = await invoke('execute_command', { command: 'journalctl -n 300 --no-pager 2>&1' });
       } else if (type === 'service') {
-        // Use dedicated service logs command with fallback logic
         result = await invoke('get_service_logs', { serviceName: value, lines: 300 });
       } else if (type === 'file') {
         result = await invoke('execute_command', { command: `tail -n 300 ${value} 2>&1` });
@@ -190,7 +175,6 @@ export default function LogViewer() {
 
       const resultStr = String(result);
 
-      // Check for error indicators
       if (resultStr.includes('command not found') ||
           resultStr.includes('No such file') ||
           resultStr.includes('permission denied') ||
@@ -288,35 +272,65 @@ export default function LogViewer() {
     const parts = line.split(regex);
     return parts.map((part, i) =>
       part.toLowerCase() === searchTerm.toLowerCase()
-        ? <mark key={i} style={{ background: 'var(--mantine-color-yellow-6)', padding: '0 4px', borderRadius: 2, color: 'black', fontWeight: 600 }}>{part}</mark>
+        ? <mark key={i} style={{ background: 'hsl(var(--warning))', padding: '0 4px', borderRadius: 'var(--radius-sm)', color: 'hsl(var(--text-inverse))', fontWeight: 600 }}>{part}</mark>
         : part
     );
   };
 
   if (!isConnected) {
     return (
-      <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-dark-6)">
-        <Stack align="center" gap="md">
-          <ThemeIcon size="lg" variant="light" color="gray">
-            <IconFileText size={24} />
-          </ThemeIcon>
-          <Text c="dimmed">Connect to a server to view logs</Text>
-        </Stack>
-      </Paper>
+      <div className="page-container animate-fade-in-up">
+        <Card className="card card-elevated" style={{ maxWidth: 500, margin: '0 auto' }}>
+          <Stack align="center" gap="md" style={{ padding: 'var(--space-8)' }}>
+            <Box
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 'var(--radius-full)',
+                background: 'hsl(var(--bg-tertiary))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--text-tertiary))',
+              }}
+            >
+              <IconFileText size={32} />
+            </Box>
+            <Text size="xl" fw={600} c="var(--text-primary)">Log Viewer</Text>
+            <Text size="sm" c="var(--text-secondary)" style={{ textAlign: 'center' }}>
+              Connect to a server to view logs
+            </Text>
+          </Stack>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Stack gap="md" h="calc(100vh - 140px)">
+    <div className="page-container animate-fade-in-up">
       {/* Header */}
-      <Group justify="space-between">
+      <Group justify="space-between" className="mb-6" style={{ marginBottom: 'var(--space-6)' }}>
         <Group gap="sm">
-          <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
-            <IconFileText size={20} />
-          </ThemeIcon>
+          <Box
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 'var(--radius-lg)',
+              background: 'hsl(var(--primary-subtle))',
+              border: '1px solid hsl(var(--primary-border))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'hsl(var(--primary))',
+            }}
+          >
+            <IconFileText size={24} />
+          </Box>
           <Stack gap={0}>
-            <Title order={3}>Log Viewer</Title>
-            <Text size="xs" c="dimmed">
+            <Title order={3} style={{ color: 'hsl(var(--text-primary))', fontSize: 'var(--text-lg)', fontWeight: 600 }}>
+              Log Viewer
+            </Title>
+            <Text size="xs" c="var(--text-tertiary)">
               {selectedPreset ? selectedPreset.label : showCustomInput ? 'Custom Path' : 'Select a log source'}
             </Text>
           </Stack>
@@ -324,11 +338,27 @@ export default function LogViewer() {
         <Group gap="xs">
           {logs.length > 0 && (
             <>
-              <Badge variant="light" size="md" color="blue">
+              <Badge
+                size="sm"
+                variant="light"
+                style={{
+                  background: 'hsl(var(--primary-subtle))',
+                  color: 'hsl(var(--primary))',
+                  border: '1px solid hsl(var(--primary-border))',
+                }}
+              >
                 {filteredLogs.length} / {logs.length} entries
               </Badge>
               {searchTerm && (
-                <Badge variant="light" size="md" color="yellow">
+                <Badge
+                  size="sm"
+                  variant="light"
+                  style={{
+                    background: 'hsl(var(--warning-subtle))',
+                    color: 'hsl(var(--warning))',
+                    border: '1px solid hsl(var(--warning-border))',
+                  }}
+                >
                   Filtered
                 </Badge>
               )}
@@ -337,114 +367,177 @@ export default function LogViewer() {
         </Group>
       </Group>
 
-      <Grid gutter="md" style={{ flex: 'none' }}>
+      <Grid gutter="md">
         {/* Left Sidebar - Log Sources */}
         <Grid.Col span={{ base: 12, lg: 3 }}>
-          <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)" h="100%">
-            <Text fw={600} mb="md" size="sm">Log Sources</Text>
-            <Stack gap="xs">
-              {LOG_PRESETS.map((preset) => (
+          <Card className="card" style={{ height: '100%' }}>
+            <Group gap="sm" mb="md">
+              <Box
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 'var(--radius-md)',
+                  background: 'hsl(var(--primary-subtle))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'hsl(var(--primary))',
+                }}
+              >
+                <IconFileText size={16} />
+              </Box>
+              <Text fw={600} size="sm" style={{ color: 'hsl(var(--text-primary))' }}>Log Sources</Text>
+            </Group>
+            <ScrollArea.Autosize mah={600}>
+              <Stack gap="xs">
+                {LOG_PRESETS.map((preset) => {
+                  const isSelected = selectedPreset?.id === preset.id;
+                  const colorVar = preset.colorVar;
+                  return (
+                    <Paper
+                      key={preset.id}
+                      p="sm"
+                      radius="md"
+                      bg={isSelected ? `hsl(var(--${colorVar}))` : 'hsl(var(--bg-tertiary))'}
+                      style={{
+                        cursor: 'pointer',
+                        transition: 'all var(--duration-fast) var(--easing-default)',
+                        border: `1px solid ${isSelected ? `hsl(var(--${colorVar}))` : 'hsl(var(--border-subtle))'}`,
+                      }}
+                      onClick={() => handlePresetClick(preset)}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = 'hsl(var(--bg-elevated))';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = 'hsl(var(--bg-tertiary))';
+                        }
+                      }}
+                    >
+                      <Group gap="sm">
+                        <Box
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 'var(--radius-md)',
+                            background: isSelected ? 'hsl(var(--bg-primary))' : `hsl(var(--${colorVar}-subtle))`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: isSelected ? `hsl(var(--${colorVar}))` : `hsl(var(--${colorVar}))`,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {preset.icon}
+                        </Box>
+                        <Box style={{ flex: 1, minWidth: 0 }}>
+                          <Text
+                            size="sm"
+                            fw={600}
+                            c={isSelected ? 'white' : 'var(--text-primary)'}
+                            style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          >
+                            {preset.label}
+                          </Text>
+                          <Text
+                            size="xs"
+                            c={isSelected ? 'white' : 'var(--text-tertiary)'}
+                            style={{ opacity: isSelected ? 0.9 : 1 }}
+                          >
+                            {preset.description}
+                          </Text>
+                        </Box>
+                      </Group>
+                    </Paper>
+                  );
+                })}
+
+                {/* Custom Path Option */}
                 <Paper
-                  key={preset.id}
                   p="sm"
                   radius="md"
-                  bg={selectedPreset?.id === preset.id ? `var(--mantine-color-${preset.color}-filled)` : 'var(--mantine-color-dark-5)'}
+                  bg={showCustomInput ? 'hsl(var(--primary))' : 'hsl(var(--bg-tertiary))'}
                   style={{
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    border: `1px solid ${showCustomInput ? 'hsl(var(--primary))' : 'hsl(var(--border-subtle))'}`,
                   }}
-                  onClick={() => handlePresetClick(preset)}
+                  onClick={handleCustomSelect}
                 >
                   <Group gap="sm">
-                    <ThemeIcon
-                      variant={selectedPreset?.id === preset.id ? 'white' : 'light'}
-                      color={selectedPreset?.id === preset.id ? preset.color : preset.color}
-                      size="md"
+                    <Box
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 'var(--radius-md)',
+                        background: showCustomInput ? 'hsl(var(--bg-primary))' : 'hsl(var(--bg-elevated))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: showCustomInput ? 'hsl(var(--primary))' : 'hsl(var(--text-tertiary))',
+                        flexShrink: 0,
+                      }}
                     >
-                      {preset.icon}
-                    </ThemeIcon>
+                      <IconTerminal size={18} />
+                    </Box>
                     <Box style={{ flex: 1 }}>
                       <Text
                         size="sm"
                         fw={600}
-                        c={selectedPreset?.id === preset.id ? 'white' : undefined}
+                        c={showCustomInput ? 'white' : 'var(--text-primary)'}
                       >
-                        {preset.label}
+                        Custom Path
                       </Text>
                       <Text
                         size="xs"
-                        c={selectedPreset?.id === preset.id ? 'white' : 'dimmed'}
-                        style={{ opacity: selectedPreset?.id === preset.id ? 0.9 : 1 }}
+                        c={showCustomInput ? 'white' : 'var(--text-tertiary)'}
                       >
-                        {preset.description}
+                        Enter a custom log file path
                       </Text>
                     </Box>
                   </Group>
                 </Paper>
-              ))}
 
-              {/* Custom Path Option */}
-              <Paper
-                p="sm"
-                radius="md"
-                bg={showCustomInput ? 'var(--mantine-color-blue-filled)' : 'var(--mantine-color-dark-5)'}
-                style={{ cursor: 'pointer' }}
-                onClick={handleCustomSelect}
-              >
-                <Group gap="sm">
-                  <ThemeIcon
-                    variant={showCustomInput ? 'white' : 'light'}
-                    color={showCustomInput ? 'blue' : 'gray'}
-                    size="md"
-                  >
-                    <IconTerminal size={18} />
-                  </ThemeIcon>
-                  <Box style={{ flex: 1 }}>
-                    <Text
+                {showCustomInput && (
+                  <Stack gap="xs" mt="xs">
+                    <TextInput
+                      placeholder="/var/log/custom.log"
+                      value={customPath}
+                      onChange={(e) => setCustomPath(e.target.value)}
                       size="sm"
-                      fw={600}
-                      c={showCustomInput ? 'white' : undefined}
+                      autoFocus
+                      onKeyDown={(e) => e.key === 'Enter' && handleCustomLoad()}
+                      styles={{
+                        input: {
+                          background: 'hsl(var(--bg-tertiary))',
+                          border: '1px solid hsl(var(--border-subtle))',
+                          color: 'hsl(var(--text-primary))',
+                        },
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      fullWidth
+                      onClick={handleCustomLoad}
+                      loading={loading}
+                      style={{
+                        background: 'hsl(var(--success))',
+                        color: 'white',
+                      }}
                     >
-                      Custom Path
-                    </Text>
-                    <Text
-                      size="xs"
-                      c={showCustomInput ? 'white' : 'dimmed'}
-                    >
-                      Enter a custom log file path
-                    </Text>
-                  </Box>
-                </Group>
-              </Paper>
-
-              {showCustomInput && (
-                <Stack gap="xs" mt="xs">
-                  <TextInput
-                    placeholder="/var/log/custom.log"
-                    value={customPath}
-                    onChange={(e) => setCustomPath(e.target.value)}
-                    size="xs"
-                    autoFocus
-                    onKeyDown={(e) => e.key === 'Enter' && handleCustomLoad()}
-                  />
-                  <Button
-                    size="xs"
-                    fullWidth
-                    onClick={handleCustomLoad}
-                    loading={loading}
-                    variant="filled"
-                  >
-                    Load Log File
-                  </Button>
-                </Stack>
-              )}
-            </Stack>
-          </Paper>
+                      Load Log File
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+            </ScrollArea.Autosize>
+          </Card>
         </Grid.Col>
 
         {/* Right - Log Output */}
         <Grid.Col span={{ base: 12, lg: 9 }}>
-          <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 280px)' }}>
+          <Card className="card" style={{ minHeight: 'calc(100vh - 280px)', display: 'flex', flexDirection: 'column' }}>
             {/* Toolbar */}
             <Group justify="space-between" mb="md">
               <Group gap="xs">
@@ -456,141 +549,207 @@ export default function LogViewer() {
                   size="sm"
                   style={{ width: 220 }}
                   variant="filled"
+                  styles={{
+                    input: {
+                      background: 'hsl(var(--bg-tertiary))',
+                      border: '1px solid hsl(var(--border-subtle))',
+                      color: 'hsl(var(--text-primary))',
+                    },
+                  }}
                 />
-                <Checkbox
-                  label="Auto-scroll"
-                  checked={autoScroll}
-                  onChange={(e) => setAutoScroll(e.target.checked)}
-                  size="xs"
-                />
+                <Paper
+                  withBorder
+                  p="xs"
+                  radius="md"
+                  style={{
+                    background: autoScroll ? 'hsl(var(--primary-subtle))' : 'hsl(var(--bg-tertiary))',
+                    border: `1px solid ${autoScroll ? 'hsl(var(--primary-border))' : 'hsl(var(--border-subtle))'}`,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                  }}
+                  onClick={() => setAutoScroll(!autoScroll)}
+                >
+                  <Box
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: 'var(--radius-sm)',
+                      background: autoScroll ? 'hsl(var(--primary))' : 'transparent',
+                      border: `1px solid ${autoScroll ? 'hsl(var(--primary))' : 'hsl(var(--text-tertiary))'}`,
+                    }}
+                  />
+                  <Text size="xs" c={autoScroll ? 'var(--text-primary)' : 'var(--text-tertiary)'}>Auto-scroll</Text>
+                </Paper>
               </Group>
               <Group gap="xs">
-                <Tooltip label="Copy to clipboard">
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    onClick={handleCopy}
-                    disabled={!logs.length}
-                  >
-                    <IconCopy size={18} />
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label="Download">
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    onClick={handleDownload}
-                    disabled={!logs.length}
-                  >
-                    <IconDownload size={18} />
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label="Clear">
-                  <ActionIcon
-                    variant="subtle"
-                    color="red"
-                    onClick={handleClear}
-                  >
-                    <IconTrash size={18} />
-                  </ActionIcon>
-                </Tooltip>
-                <Divider orientation="vertical" />
-                <Tooltip label="Refresh">
-                  <ActionIcon
-                    variant="subtle"
-                    color="blue"
-                    onClick={() => selectedPreset && fetchLogs(selectedPreset.type, selectedPreset.value || customPath)}
-                    loading={loading}
-                  >
-                    <IconRefresh size={18} />
-                  </ActionIcon>
-                </Tooltip>
+                <ActionIcon
+                  variant="subtle"
+                  onClick={handleCopy}
+                  disabled={!logs.length}
+                  style={{
+                    background: logs.length ? 'hsl(var(--bg-tertiary))' : 'hsl(var(--bg-tertiary))',
+                    color: logs.length ? 'hsl(var(--text-secondary))' : 'hsl(var(--text-tertiary))',
+                    border: '1px solid hsl(var(--border-subtle))',
+                  }}
+                  title="Copy to clipboard"
+                >
+                  <IconCopy size={18} />
+                </ActionIcon>
+                <ActionIcon
+                  variant="subtle"
+                  onClick={handleDownload}
+                  disabled={!logs.length}
+                  style={{
+                    background: logs.length ? 'hsl(var(--bg-tertiary))' : 'hsl(var(--bg-tertiary))',
+                    color: logs.length ? 'hsl(var(--text-secondary))' : 'hsl(var(--text-tertiary))',
+                    border: '1px solid hsl(var(--border-subtle))',
+                  }}
+                  title="Download"
+                >
+                  <IconDownload size={18} />
+                </ActionIcon>
+                <ActionIcon
+                  variant="subtle"
+                  onClick={handleClear}
+                  style={{
+                    background: 'hsl(var(--error-subtle))',
+                    color: 'hsl(var(--error))',
+                    border: '1px solid hsl(var(--error-border))',
+                  }}
+                  title="Clear"
+                >
+                  <IconTrash size={18} />
+                </ActionIcon>
+                <Divider orientation="vertical" style={{ borderColor: 'hsl(var(--border-subtle))', height: 24 }} />
+                <ActionIcon
+                  variant="subtle"
+                  onClick={() => selectedPreset && fetchLogs(selectedPreset.type, selectedPreset.value || customPath)}
+                  loading={loading}
+                  style={{
+                    background: 'hsl(var(--primary-subtle))',
+                    color: 'hsl(var(--primary))',
+                    border: '1px solid hsl(var(--primary-border))',
+                  }}
+                  title="Refresh"
+                >
+                  <IconRefresh size={18} />
+                </ActionIcon>
               </Group>
             </Group>
 
-            <Divider mb="md" />
+            <Divider mb="md" style={{ borderColor: 'hsl(var(--border-subtle))' }} />
 
             {/* Log Content */}
             <Box style={{ flex: 1, overflow: 'hidden' }}>
               {loading && logs.length === 0 ? (
                 <Center h="100%">
                   <Stack align="center" gap="md">
-                    <Loader size="lg" />
-                    <Text c="dimmed">Loading logs...</Text>
+                    <Loader size="lg" color="hsl(var(--primary))" />
+                    <Text c="var(--text-tertiary)">Loading logs...</Text>
                   </Stack>
                 </Center>
               ) : error ? (
-                <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-red-9)" h="100%">
-                  <Stack align="center" gap="md">
-                    <ThemeIcon size="lg" variant="filled" color="red">
-                      <IconFileText size={24} />
-                    </ThemeIcon>
-                    <Text c="red.2" fw={600}>Unable to load logs</Text>
-                    <Text c="red.4" size="sm" ta="center">{error}</Text>
-                    <Text c="red.6" size="xs" ta="center">
+                <Card className="card card-elevated" style={{ height: '100%' }}>
+                  <Stack align="center" gap="md" style={{ padding: 'var(--space-8)' }}>
+                    <Box
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 'var(--radius-full)',
+                        background: 'hsl(var(--error-subtle))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'hsl(var(--error))',
+                      }}
+                    >
+                      <Icons.AlertTriangle size={32} />
+                    </Box>
+                    <Text c="var(--text-primary)" fw={600} size="lg">Unable to load logs</Text>
+                    <Text c="var(--text-secondary)" size="sm" ta="center">{error}</Text>
+                    <Text c="var(--text-tertiary)" size="xs" ta="center">
                       Tip: Try a different log source or check if the service is running.
                     </Text>
                   </Stack>
-                </Paper>
+                </Card>
               ) : logs.length > 0 ? (
                 <ScrollArea.Autosize style={{ height: '100%' }}>
                   <Box
                     component="pre"
                     p="md"
-                    bg="var(--mantine-color-dark-8)"
+                    bg="hsl(var(--bg-tertiary))"
                     style={{
-                      fontFamily: 'monospace',
-                      fontSize: 12,
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 'var(--text-xs)',
                       lineHeight: 1.7,
                       minWidth: '100%',
-                      borderRadius: 'var(--mantine-radius-md)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid hsl(var(--border-subtle))',
                     }}
                   >
-                    {filteredLogs.map((line, i) => (
-                      <Box key={i} style={{ display: 'flex', gap: 12, borderBottom: '1px solid var(--mantine-color-dark-6)', paddingBottom: 4, marginBottom: 4 }}>
-                        <Text
-                          component="span"
-                          c="dimmed"
-                          style={{
-                            minWidth: 48,
-                            textAlign: 'right',
-                            userSelect: 'none',
-                            flexShrink: 0,
-                            fontSize: 11,
-                            paddingTop: 2,
-                          }}
-                        >
-                          {i + 1}
-                        </Text>
-                        <Text
-                          component="span"
-                          style={{
-                            flex: 1,
-                            wordBreak: 'break-all',
-                            color: line.toLowerCase().includes('error') ? 'var(--mantine-color-red-4)' :
-                                   line.toLowerCase().includes('warn') ? 'var(--mantine-color-yellow-4)' :
-                                   line.toLowerCase().includes('fail') ? 'var(--mantine-color-orange-4)' :
-                                   'var(--mantine-color-gray-3)',
-                          }}
-                        >
-                          {highlightSearch(line)}
-                        </Text>
-                      </Box>
-                    ))}
+                    {filteredLogs.map((line, i) => {
+                      const isError = line.toLowerCase().includes('error');
+                      const isWarn = line.toLowerCase().includes('warn');
+                      const isFail = line.toLowerCase().includes('fail');
+                      return (
+                        <Box key={i} style={{ display: 'flex', gap: 12, borderBottom: '1px solid hsl(var(--border-subtle))', paddingBottom: 4, marginBottom: 4 }}>
+                          <Text
+                            component="span"
+                            c="var(--text-tertiary)"
+                            style={{
+                              minWidth: 48,
+                              textAlign: 'right',
+                              userSelect: 'none',
+                              flexShrink: 0,
+                              fontSize: 'var(--text-xs)',
+                              paddingTop: 2,
+                            }}
+                          >
+                            {i + 1}
+                          </Text>
+                          <Text
+                            component="span"
+                            style={{
+                              flex: 1,
+                              wordBreak: 'break-all',
+                              color: isError ? 'hsl(var(--error))' :
+                                     isWarn ? 'hsl(var(--warning))' :
+                                     isFail ? 'hsl(var(--error))' :
+                                     'hsl(var(--text-secondary))',
+                            }}
+                          >
+                            {highlightSearch(line)}
+                          </Text>
+                        </Box>
+                      );
+                    })}
                     <div ref={logsEndRef} />
                   </Box>
                 </ScrollArea.Autosize>
               ) : (
                 <Center h="100%">
                   <Stack align="center" gap="md">
-                    <ThemeIcon size="xl" variant="light" color="gray">
+                    <Box
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 'var(--radius-full)',
+                        background: 'hsl(var(--bg-tertiary))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'hsl(var(--text-tertiary))',
+                      }}
+                    >
                       <IconFileText size={32} />
-                    </ThemeIcon>
-                    <Text c="dimmed" fw={500}>
+                    </Box>
+                    <Text c="var(--text-secondary)" fw={500}>
                       {showCustomInput ? 'Enter a path and click Load to view logs' : 'Select a log source to view entries'}
                     </Text>
                     {!showCustomInput && (
-                      <Text c="dimmed" size="sm">
+                      <Text c="var(--text-tertiary)" size="sm">
                         Or choose Custom Path to load a specific file
                       </Text>
                     )}
@@ -598,9 +757,9 @@ export default function LogViewer() {
                 </Center>
               )}
             </Box>
-          </Paper>
+          </Card>
         </Grid.Col>
       </Grid>
-    </Stack>
+    </div>
   );
 }

@@ -1,16 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useServer } from '../context/ServerContext';
 import { useToast } from '../context/ToastContext';
 import { SystemUser, CreateUserRequest } from '../types';
 import {
-  Paper, Text, Group, Title, Button, Stack, Table, Badge, ActionIcon, Modal, Box, Loader, Center, ThemeIcon, Divider, TextInput, Select, Card, SimpleGrid, Switch, Tooltip, ScrollArea,
+  Paper, Text, Group, Title, Button, Stack, Table, Badge, ActionIcon, Modal, Box, Loader, Center, Divider, TextInput, Card, SimpleGrid, Switch, Tooltip, ScrollArea, Select,
 } from '@mantine/core';
-import {
-  IconUsers, IconRefresh, IconPlus, IconTrash, IconLock, IconLockOpen, IconShield, IconUserX,
-} from '@tabler/icons-react';
+import { Icons } from '../lib/icons';
 
-export default function UserManager() {
+interface SystemGroup {
+  name: string;
+  gid: number;
+}
+
+const UserManager = memo(function UserManager() {
   const { isConnected } = useServer();
   const { addToast } = useToast();
   const [users, setUsers] = useState<SystemUser[]>([]);
@@ -105,104 +108,169 @@ export default function UserManager() {
 
   const availableGroups = groups.map(g => g.name).filter(g => g !== newUser.username);
 
+  const stats = {
+    total: users.length,
+    groups: groups.length,
+    locked: users.filter(u => u.locked).length,
+    noPassword: users.filter(u => !u.has_password).length,
+  };
+
   if (!isConnected) {
     return (
-      <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-dark-6)">
-        <Stack align="center" gap="md">
-          <ThemeIcon size="lg" variant="light" color="gray">
-            <IconUsers size={24} />
-          </ThemeIcon>
-          <Text c="dimmed">Connect to manage users</Text>
-        </Stack>
-      </Paper>
+      <div className="page-container animate-fade-in-up">
+        <Card className="card card-elevated" style={{ maxWidth: 500, margin: '0 auto' }}>
+          <Stack align="center" gap="md" style={{ padding: 'var(--space-8)' }}>
+            <Box
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 'var(--radius-full)',
+                background: 'hsl(var(--bg-tertiary))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--text-tertiary))',
+              }}
+            >
+              <Icons.Users size={32} />
+            </Box>
+            <Text size="xl" fw={600} c="var(--text-primary)">User Management</Text>
+            <Text size="sm" c="var(--text-secondary)" style={{ textAlign: 'center' }}>
+              Connect to a server to manage system users
+            </Text>
+          </Stack>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Stack gap="md">
+    <div className="page-container animate-fade-in-up">
       {/* Header */}
-      <Group justify="space-between">
+      <Group justify="space-between" className="mb-6" style={{ marginBottom: 'var(--space-6)' }}>
         <Group gap="sm">
-          <ThemeIcon size="lg" color="blue">
-            <IconUsers size={20} />
-          </ThemeIcon>
+          <Box
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 'var(--radius-lg)',
+              background: 'hsl(var(--primary-subtle))',
+              border: '1px solid hsl(var(--primary-border))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'hsl(var(--primary))',
+            }}
+          >
+            <Icons.Users size={24} />
+          </Box>
           <Stack gap={0}>
-            <Title order={3}>User Management</Title>
-            <Text size="xs" c="dimmed">{users.length} system users</Text>
+            <Title order={3} style={{ color: 'hsl(var(--text-primary))', fontSize: 'var(--text-lg)', fontWeight: 600 }}>
+              User Management
+            </Title>
+            <Text size="xs" c="var(--text-tertiary)">
+              {users.length} system users configured
+            </Text>
           </Stack>
         </Group>
         <Group gap="xs">
-          <Button variant="outline" color="blue" leftSection={<IconRefresh size={18} />} onClick={() => { fetchUsers(); fetchGroups(); }} loading={loading}>
+          <Button
+            variant="subtle"
+            size="compact-sm"
+            onClick={() => { fetchUsers(); fetchGroups(); }}
+            loading={loading}
+            leftSection={<Icons.Refresh size={16} />}
+            style={{
+              background: 'hsl(var(--bg-tertiary))',
+              color: 'hsl(var(--text-primary))',
+              border: '1px solid hsl(var(--border-default))',
+            }}
+          >
             Refresh
           </Button>
-          <Button color="green" leftSection={<IconPlus size={18} />} onClick={() => setShowCreateModal(true)}>
+          <Button
+            size="compact-sm"
+            style={{
+              background: 'hsl(var(--success))',
+              color: 'white',
+            }}
+            leftSection={<Icons.Plus size={16} />}
+            onClick={() => setShowCreateModal(true)}
+          >
             Create User
           </Button>
         </Group>
       </Group>
 
-      {/* Stats */}
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
-        <Card withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+      {/* Stats Cards */}
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} style={{ marginBottom: 'var(--space-4)' }}>
+        {/* Total Users */}
+        <Card className="card card-hover metric-card metric-card--primary">
           <Group gap="xs">
-            <ThemeIcon variant="light" color="blue" size="md">
-              <IconUsers size={18} />
-            </ThemeIcon>
+            <Box className="metric-card__icon metric-card__icon--primary">
+              <Icons.Users size={18} />
+            </Box>
             <Stack gap={0}>
-              <Text size="xs" c="dimmed">Total Users</Text>
-              <Text size="xl" fw={700}>{users.length}</Text>
+              <Text size="sm" c="var(--text-tertiary)" fw={500}>Total Users</Text>
+              <Text size="2xl" fw={700} style={{ color: 'hsl(var(--text-primary))' }}>{stats.total}</Text>
             </Stack>
           </Group>
         </Card>
-        <Card withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+
+        {/* Groups */}
+        <Card className="card card-hover metric-card metric-card--success">
           <Group gap="xs">
-            <ThemeIcon variant="light" color="green" size="md">
-              <IconShield size={18} />
-            </ThemeIcon>
+            <Box className="metric-card__icon metric-card__icon--success">
+              <Icons.Shield size={18} />
+            </Box>
             <Stack gap={0}>
-              <Text size="xs" c="dimmed">Groups</Text>
-              <Text size="xl" fw={700}>{groups.length}</Text>
+              <Text size="sm" c="var(--text-tertiary)" fw={500}>Groups</Text>
+              <Text size="2xl" fw={700} style={{ color: 'hsl(var(--success))' }}>{stats.groups}</Text>
             </Stack>
           </Group>
         </Card>
-        <Card withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+
+        {/* Locked Users */}
+        <Card className="card card-hover metric-card metric-card--warning">
           <Group gap="xs">
-            <ThemeIcon variant="light" color="yellow" size="md">
-              <IconLock size={18} />
-            </ThemeIcon>
+            <Box className="metric-card__icon metric-card__icon--warning">
+              <Icons.Lock size={18} />
+            </Box>
             <Stack gap={0}>
-              <Text size="xs" c="dimmed">Locked</Text>
-              <Text size="xl" fw={700}>{users.filter(u => u.locked).length}</Text>
+              <Text size="sm" c="var(--text-tertiary)" fw={500}>Locked</Text>
+              <Text size="2xl" fw={700} style={{ color: 'hsl(var(--warning))' }}>{stats.locked}</Text>
             </Stack>
           </Group>
         </Card>
-        <Card withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+
+        {/* No Password */}
+        <Card className="card card-hover metric-card metric-card--error">
           <Group gap="xs">
-            <ThemeIcon variant="light" color="red" size="md">
-              <IconUserX size={18} />
-            </ThemeIcon>
+            <Box className="metric-card__icon metric-card__icon--error">
+              <Icons.LockOpen size={18} />
+            </Box>
             <Stack gap={0}>
-              <Text size="xs" c="dimmed">No Password</Text>
-              <Text size="xl" fw={700}>{users.filter(u => !u.has_password).length}</Text>
+              <Text size="sm" c="var(--text-tertiary)" fw={500}>No Password</Text>
+              <Text size="2xl" fw={700} style={{ color: 'hsl(var(--error))' }}>{stats.noPassword}</Text>
             </Stack>
           </Group>
         </Card>
       </SimpleGrid>
 
       {/* Users Table */}
-      <Paper withBorder radius="md" bg="var(--mantine-color-dark-6)" style={{ flex: 1, overflow: 'hidden' }}>
-        <ScrollArea.Autosize style={{ height: 'calc(100vh - 320px)' }}>
-          <Table highlightOnHover>
+      <Card className="card" style={{ flex: 1, overflow: 'hidden', minHeight: 400 }}>
+        <ScrollArea.Autosize style={{ height: '100%' }}>
+          <Table verticalSpacing="sm" highlightOnHover>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Username</Table.Th>
-                <Table.Th>UID/GID</Table.Th>
-                <Table.Th>Groups</Table.Th>
-                <Table.Th>Home</Table.Th>
-                <Table.Th>Shell</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th>Last Login</Table.Th>
-                <Table.Th>Actions</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Username</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>UID/GID</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Groups</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Home</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Shell</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Status</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Last Login</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -211,8 +279,8 @@ export default function UserManager() {
                   <Table.Td colSpan={8}>
                     <Center py="xl">
                       <Stack align="center" gap="md">
-                        <Loader size="lg" />
-                        <Text c="dimmed">Loading users...</Text>
+                        <Loader size="lg" color="hsl(var(--primary))" />
+                        <Text c="var(--text-tertiary)">Loading users...</Text>
                       </Stack>
                     </Center>
                   </Table.Td>
@@ -221,7 +289,7 @@ export default function UserManager() {
                 <Table.Tr>
                   <Table.Td colSpan={8}>
                     <Center py="xl">
-                      <Text c="dimmed">No users found</Text>
+                      <Text c="var(--text-tertiary)">No users found</Text>
                     </Center>
                   </Table.Td>
                 </Table.Tr>
@@ -230,64 +298,123 @@ export default function UserManager() {
                   <Table.Tr key={user.username}>
                     <Table.Td>
                       <Group gap="xs">
-                        <Text fw={500} style={{ fontFamily: 'monospace' }}>{user.username}</Text>
-                        {user.uid === 0 && <Badge size="xs" variant="light" color="red">root</Badge>}
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm">{user.uid}/{user.gid}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap="xs">
-                        {user.groups.slice(0, 3).map((g) => (
-                          <Badge key={g} size="xs" variant="light">{g}</Badge>
-                        ))}
-                        {user.groups.length > 3 && (
-                          <Badge size="xs" variant="light">+{user.groups.length - 3}</Badge>
+                        <Text fw={500} style={{ fontFamily: 'var(--font-mono)', color: 'hsl(var(--text-primary))' }}>{user.username}</Text>
+                        {user.uid === 0 && (
+                          <Badge
+                            size="xs"
+                            variant="light"
+                            style={{
+                              background: 'hsl(var(--error-subtle))',
+                              color: 'hsl(var(--error))',
+                              border: '1px solid hsl(var(--error-border))',
+                            }}
+                          >
+                            root
+                          </Badge>
                         )}
                       </Group>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm" c="dimmed" style={{ fontFamily: 'monospace', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Text size="sm" style={{ color: 'hsl(var(--text-secondary))' }}>{user.uid}/{user.gid}</Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap="xs">
+                        {user.groups.slice(0, 3).map((g) => (
+                          <Badge
+                            key={g}
+                            size="xs"
+                            variant="light"
+                            style={{
+                              background: 'hsl(var(--bg-tertiary))',
+                              color: 'hsl(var(--text-secondary))',
+                              border: '1px solid hsl(var(--border-subtle))',
+                            }}
+                          >
+                            {g}
+                          </Badge>
+                        ))}
+                        {user.groups.length > 3 && (
+                          <Badge
+                            size="xs"
+                            variant="light"
+                            style={{
+                              background: 'hsl(var(--bg-tertiary))',
+                              color: 'hsl(var(--text-tertiary))',
+                              border: '1px solid hsl(var(--border-subtle))',
+                            }}
+                          >
+                            +{user.groups.length - 3}
+                          </Badge>
+                        )}
+                      </Group>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text
+                        size="sm"
+                        c="var(--text-tertiary)"
+                        style={{
+                          fontFamily: 'var(--font-mono)',
+                          maxWidth: 150,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {user.home}
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm" c="dimmed" style={{ fontFamily: 'monospace' }}>{user.shell}</Text>
+                      <Text size="sm" c="var(--text-tertiary)" style={{ fontFamily: 'var(--font-mono)' }}>{user.shell}</Text>
                     </Table.Td>
                     <Table.Td>
                       <Group gap="xs">
-                        <Badge color={user.locked ? 'yellow' : 'green'} variant="light">
+                        <Badge
+                          size="sm"
+                          variant="light"
+                          style={{
+                            background: user.locked ? 'hsl(var(--warning-subtle))' : 'hsl(var(--success-subtle))',
+                            color: user.locked ? 'hsl(var(--warning))' : 'hsl(var(--success))',
+                            border: `1px solid hsl(var(--${user.locked ? 'warning' : 'success'}-border))`,
+                          }}
+                        >
                           {user.locked ? 'Locked' : 'Active'}
                         </Badge>
-                        {user.has_password && <IconLock size={14} color="var(--mantine-color-green-4)" />}
+                        {user.has_password && (
+                          <Icons.Lock size={14} style={{ color: 'hsl(var(--success))' }} />
+                        )}
                       </Group>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm" c="dimmed">{user.last_login || 'Never'}</Text>
+                      <Text size="sm" c="var(--text-tertiary)">{user.last_login || 'Never'}</Text>
                     </Table.Td>
                     <Table.Td>
                       <Group gap="xs">
                         <Tooltip label={user.locked ? 'Unlock' : 'Lock'}>
                           <ActionIcon
-                            variant="light"
                             size="sm"
-                            color={user.locked ? 'green' : 'yellow'}
+                            style={{
+                              background: user.locked ? 'hsl(var(--success-subtle))' : 'hsl(var(--warning-subtle))',
+                              color: user.locked ? 'hsl(var(--success))' : 'hsl(var(--warning))',
+                            }}
                             onClick={() => handleLockUser(user.username, !user.locked)}
                             disabled={user.uid === 0}
+                            title={user.locked ? 'Unlock' : 'Lock'}
                           >
-                            {user.locked ? <IconLockOpen size={16} /> : <IconLock size={16} />}
+                            {user.locked ? <Icons.LockOpen size={16} /> : <Icons.Lock size={16} />}
                           </ActionIcon>
                         </Tooltip>
                         <Tooltip label="Delete">
                           <ActionIcon
-                            variant="light"
                             size="sm"
-                            color="red"
+                            style={{
+                              background: 'hsl(var(--error-subtle))',
+                              color: 'hsl(var(--error))',
+                            }}
                             onClick={() => handleDeleteUser(user.username)}
                             disabled={user.uid === 0}
+                            title="Delete"
                           >
-                            <IconTrash size={16} />
+                            <Icons.Trash size={16} />
                           </ActionIcon>
                         </Tooltip>
                       </Group>
@@ -298,7 +425,7 @@ export default function UserManager() {
             </Table.Tbody>
           </Table>
         </ScrollArea.Autosize>
-      </Paper>
+      </Card>
 
       {/* Create User Modal */}
       <Modal
@@ -306,11 +433,37 @@ export default function UserManager() {
         onClose={() => setShowCreateModal(false)}
         title={
           <Group gap="sm">
-            <IconUsers size={20} />
-            <Text fw={600}>Create New User</Text>
+            <Box
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-md)',
+                background: 'hsl(var(--primary-subtle))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--primary))',
+              }}
+            >
+              <Icons.Users size={16} />
+            </Box>
+            <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Create New User</Text>
           </Group>
         }
         size="md"
+        centered
+        styles={{
+          content: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+            border: '1px solid hsl(var(--border-default))',
+          },
+          header: {
+            borderBottom: '1px solid hsl(var(--border-subtle))',
+          },
+          body: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+          },
+        }}
       >
         <Stack gap="md">
           <TextInput
@@ -319,6 +472,17 @@ export default function UserManager() {
             value={newUser.username}
             onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
             required
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+              label: {
+                color: 'hsl(var(--text-secondary))',
+                fontWeight: 500,
+              },
+            }}
           />
           <TextInput
             label="Password"
@@ -327,12 +491,38 @@ export default function UserManager() {
             value={newUser.password}
             onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
             description="Leave empty for no password"
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+              label: {
+                color: 'hsl(var(--text-secondary))',
+                fontWeight: 500,
+              },
+              description: {
+                color: 'hsl(var(--text-tertiary))',
+                fontSize: 'var(--text-xs)',
+              },
+            }}
           />
           <TextInput
             label="Home Directory"
             placeholder={`/home/${newUser.username || 'username'}`}
             value={newUser.home}
             onChange={(e) => setNewUser({ ...newUser, home: e.target.value })}
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+              label: {
+                color: 'hsl(var(--text-secondary))',
+                fontWeight: 500,
+              },
+            }}
           />
           <Select
             label="Shell"
@@ -344,6 +534,17 @@ export default function UserManager() {
               { value: '/usr/sbin/nologin', label: 'No Login (/usr/sbin/nologin)' },
               { value: '/bin/false', label: 'False (/bin/false)' },
             ]}
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+              label: {
+                color: 'hsl(var(--text-secondary))',
+                fontWeight: 500,
+              },
+            }}
           />
           <Select
             label="Additional Groups"
@@ -355,22 +556,61 @@ export default function UserManager() {
             searchable
             maxDropdownHeight={200}
             description="User will be added to these groups"
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+              label: {
+                color: 'hsl(var(--text-secondary))',
+                fontWeight: 500,
+              },
+              description: {
+                color: 'hsl(var(--text-tertiary))',
+                fontSize: 'var(--text-xs)',
+              },
+            }}
           />
           <Switch
             label="Create home directory"
             checked={newUser.create_home}
             onChange={(e) => setNewUser({ ...newUser, create_home: e.currentTarget.checked })}
+            styles={{
+              label: {
+                color: 'hsl(var(--text-secondary))',
+                fontWeight: 500,
+              },
+            }}
           />
+          <Divider style={{ borderColor: 'hsl(var(--border-subtle))' }} />
           <Group justify="flex-end" mt="md">
-            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+            <Button
+              variant="subtle"
+              onClick={() => setShowCreateModal(false)}
+              style={{
+                background: 'hsl(var(--bg-tertiary))',
+                color: 'hsl(var(--text-primary))',
+                border: '1px solid hsl(var(--border-default))',
+              }}
+            >
               Cancel
             </Button>
-            <Button onClick={handleCreateUser} loading={loading}>
+            <Button
+              onClick={handleCreateUser}
+              loading={loading}
+              style={{
+                background: 'hsl(var(--success))',
+                color: 'white',
+              }}
+            >
               Create User
             </Button>
           </Group>
         </Stack>
       </Modal>
-    </Stack>
+    </div>
   );
-}
+});
+
+export default UserManager;

@@ -11,7 +11,6 @@ import {
   Stack,
   Button,
   Badge,
-  ThemeIcon,
   Switch,
   Modal,
   TextInput,
@@ -26,6 +25,8 @@ import {
   Center,
   Tabs,
   Grid,
+  Box,
+  Loader,
 } from '@mantine/core';
 import {
   IconShield,
@@ -189,40 +190,85 @@ export default function FirewallManager() {
 
   if (!isConnected) {
     return (
-      <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-dark-6)">
-        <Center>
-          <Stack align="center" gap="md">
-            <ThemeIcon size="lg" variant="light" color="gray">
-              <IconShield size={24} />
-            </ThemeIcon>
-            <Text c="dimmed">Connect to manage firewall</Text>
+      <div className="page-container animate-fade-in-up">
+        <Card className="card card-elevated" style={{ maxWidth: 500, margin: '0 auto' }}>
+          <Stack align="center" gap="md" style={{ padding: 'var(--space-8)' }}>
+            <Box
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 'var(--radius-full)',
+                background: 'hsl(var(--bg-tertiary))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--text-tertiary))',
+              }}
+            >
+              <IconShield size={32} />
+            </Box>
+            <Text size="xl" fw={600} c="var(--text-primary)">Firewall Manager</Text>
+            <Text size="sm" c="var(--text-secondary)" style={{ textAlign: 'center' }}>
+              Connect to a server to manage firewall rules
+            </Text>
           </Stack>
-        </Center>
-      </Paper>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Stack gap="md">
+    <div className="page-container animate-fade-in-up">
       {/* Header */}
-      <Group justify="space-between">
+      <Group justify="space-between" className="mb-6" style={{ marginBottom: 'var(--space-6)' }}>
         <Group gap="sm">
-          <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
-            <IconShield size={20} />
-          </ThemeIcon>
+          <Box
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 'var(--radius-lg)',
+              background: 'hsl(var(--primary-subtle))',
+              border: '1px solid hsl(var(--primary-border))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'hsl(var(--primary))',
+            }}
+          >
+            <IconShield size={24} />
+          </Box>
           <Stack gap={0}>
-            <Title order={3}>Firewall Manager</Title>
-            <Text size="xs" c="dimmed">UFW - Complete Port Management</Text>
+            <Title order={3} style={{ color: 'hsl(var(--text-primary))', fontSize: 'var(--text-lg)', fontWeight: 600 }}>
+              Firewall Manager
+            </Title>
+            <Text size="xs" c="var(--text-tertiary)">UFW - Complete Port Management</Text>
           </Stack>
         </Group>
         <Group gap="xs">
           <Tooltip label="Reload">
-            <ActionIcon variant="subtle" color="blue" onClick={fetchUfwData} loading={loading}>
+            <ActionIcon
+              variant="subtle"
+              onClick={fetchUfwData}
+              loading={loading}
+              style={{
+                background: 'hsl(var(--bg-tertiary))',
+                color: 'hsl(var(--primary))',
+                border: '1px solid hsl(var(--border-default))',
+              }}
+            >
               <IconRefresh size={18} />
             </ActionIcon>
           </Tooltip>
           <Tooltip label="Settings">
-            <ActionIcon variant="subtle" color="gray" onClick={() => setShowSettingsModal(true)}>
+            <ActionIcon
+              variant="subtle"
+              onClick={() => setShowSettingsModal(true)}
+              style={{
+                background: 'hsl(var(--bg-tertiary))',
+                color: 'hsl(var(--text-secondary))',
+                border: '1px solid hsl(var(--border-default))',
+              }}
+            >
               <IconSettings size={18} />
             </ActionIcon>
           </Tooltip>
@@ -232,21 +278,28 @@ export default function FirewallManager() {
       {overview && (
         <>
           {/* Status Card */}
-          <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+          <Card className="card card-hover" style={{ marginBottom: 'var(--space-4)' }}>
             <Group justify="space-between">
               <Group gap="md">
-                <ThemeIcon
-                  size="xl"
-                  variant="gradient"
-                  gradient={{ from: overview.active ? 'green' : 'red', to: overview.active ? 'teal' : 'orange' }}
+                <Box
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 'var(--radius-lg)',
+                    background: overview.active ? 'hsl(var(--success-subtle))' : 'hsl(var(--error-subtle))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: overview.active ? 'hsl(var(--success))' : 'hsl(var(--error))',
+                  }}
                 >
                   {overview.active ? <IconShieldCheck size={28} /> : <IconShieldOff size={28} />}
-                </ThemeIcon>
+                </Box>
                 <Stack gap={0}>
-                  <Text fw={700} size="lg">
+                  <Text fw={700} size="lg" style={{ color: 'hsl(var(--text-primary))' }}>
                     Firewall is {overview.active ? 'Active' : 'Inactive'}
                   </Text>
-                  <Text size="sm" c="dimmed">
+                  <Text size="sm" c="var(--text-tertiary)">
                     {overview.open_ports.length} ports open · {overview.blocked_ports.length} ports blocked
                   </Text>
                 </Stack>
@@ -260,7 +313,62 @@ export default function FirewallManager() {
                 color={overview.active ? 'green' : 'red'}
               />
             </Group>
-          </Paper>
+          </Card>
+
+          {/* Stats Grid */}
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} style={{ marginBottom: 'var(--space-4)' }}>
+            {/* Open Ports */}
+            <Card className="card card-hover metric-card metric-card--success">
+              <Group gap="xs">
+                <Box className="metric-card__icon metric-card__icon--success">
+                  <IconDoorEnter size={18} />
+                </Box>
+                <Stack gap={0}>
+                  <Text size="sm" c="var(--text-tertiary)" fw={500}>Open Ports</Text>
+                  <Text size="2xl" fw={700} style={{ color: 'hsl(var(--success))' }}>{overview.open_ports.length}</Text>
+                </Stack>
+              </Group>
+            </Card>
+
+            {/* Blocked Ports */}
+            <Card className="card card-hover metric-card metric-card--error">
+              <Group gap="xs">
+                <Box className="metric-card__icon metric-card__icon--error">
+                  <IconDoorOff size={18} />
+                </Box>
+                <Stack gap={0}>
+                  <Text size="sm" c="var(--text-tertiary)" fw={500}>Blocked</Text>
+                  <Text size="2xl" fw={700} style={{ color: 'hsl(var(--error))' }}>{overview.blocked_ports.length}</Text>
+                </Stack>
+              </Group>
+            </Card>
+
+            {/* Listening Ports */}
+            <Card className="card card-hover metric-card metric-card--info">
+              <Group gap="xs">
+                <Box className="metric-card__icon metric-card__icon--info">
+                  <IconServer size={18} />
+                </Box>
+                <Stack gap={0}>
+                  <Text size="sm" c="var(--text-tertiary)" fw={500}>Listening</Text>
+                  <Text size="2xl" fw={700} style={{ color: 'hsl(var(--info))' }}>{listeningPorts.length}</Text>
+                </Stack>
+              </Group>
+            </Card>
+
+            {/* Total Rules */}
+            <Card className="card card-hover metric-card metric-card--warning">
+              <Group gap="xs">
+                <Box className="metric-card__icon metric-card__icon--warning">
+                  <IconList size={18} />
+                </Box>
+                <Stack gap={0}>
+                  <Text size="sm" c="var(--text-tertiary)" fw={500}>Total Rules</Text>
+                  <Text size="2xl" fw={700} style={{ color: 'hsl(var(--warning))' }}>{overview.all_rules.length}</Text>
+                </Stack>
+              </Group>
+            </Card>
+          </SimpleGrid>
 
           {/* Tabs for different views */}
           <Tabs value={activeTab} onChange={(v) => setActiveTab(v || 'overview')} variant="pills">
@@ -286,126 +394,252 @@ export default function FirewallManager() {
             <Tabs.Panel value="overview" pt="md">
               <Grid gutter="md">
                 <Grid.Col span={{ base: 12, lg: 8 }}>
-                  <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+                  <Card className="card">
                     <Group justify="space-between" mb="md">
                       <Group gap="sm">
-                        <ThemeIcon variant="light" color="green" size="md">
+                        <Box
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 'var(--radius-md)',
+                            background: 'hsl(var(--success-subtle))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'hsl(var(--success))',
+                          }}
+                        >
                           <IconDoorEnter size={18} />
-                        </ThemeIcon>
-                        <Text fw={600}>Open Ports</Text>
+                        </Box>
+                        <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Open Ports</Text>
                       </Group>
-                      <Badge variant="light" color="green">{overview.open_ports.length} allowed</Badge>
+                      <Badge
+                        variant="light"
+                        size="sm"
+                        style={{
+                          background: 'hsl(var(--success-subtle))',
+                          color: 'hsl(var(--success))',
+                          border: '1px solid hsl(var(--success-border))',
+                        }}
+                      >
+                        {overview.open_ports.length} allowed
+                      </Badge>
                     </Group>
                     {overview.open_ports.length === 0 ? (
-                      <Text c="dimmed" size="sm">No ports are currently allowed through the firewall</Text>
+                      <Text c="var(--text-tertiary)" size="sm">No ports are currently allowed through the firewall</Text>
                     ) : (
                       <SimpleGrid cols={{ base: 2, sm: 3 }}>
                         {overview.open_ports.map((port, idx) => (
-                          <Card key={idx} withBorder p="sm" radius="md" bg="var(--mantine-color-dark-7)">
+                          <Card key={idx} className="card card-hover" style={{ background: 'hsl(var(--bg-tertiary))' }}>
                             <Group justify="space-between">
                               <Stack gap={2}>
                                 <Group gap="xs">
-                                  <Text fw={700} size="lg">{port.port}</Text>
-                                  <Text size="xs" c="dimmed">/{port.protocol}</Text>
+                                  <Text fw={700} size="lg" style={{ color: 'hsl(var(--text-primary))' }}>{port.port}</Text>
+                                  <Text size="xs" c="var(--text-tertiary)">/{port.protocol}</Text>
                                 </Group>
-                                <Text size="xs" c="dimmed">
+                                <Text size="xs" c="var(--text-tertiary)">
                                   {getServiceName(port.port) || port.service_name || 'Custom'}
                                 </Text>
                               </Stack>
-                              <ThemeIcon variant="light" color="green" size="sm">
+                              <Box
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 'var(--radius-md)',
+                                  background: 'hsl(var(--success-subtle))',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'hsl(var(--success))',
+                                }}
+                              >
                                 <IconCheck size={14} />
-                              </ThemeIcon>
+                              </Box>
                             </Group>
                           </Card>
                         ))}
                       </SimpleGrid>
                     )}
-                  </Paper>
+                  </Card>
                 </Grid.Col>
 
                 <Grid.Col span={{ base: 12, lg: 4 }}>
-                  <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+                  <Card className="card" style={{ marginBottom: 'var(--space-4)' }}>
                     <Group justify="space-between" mb="md">
                       <Group gap="sm">
-                        <ThemeIcon variant="light" color="red" size="md">
+                        <Box
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 'var(--radius-md)',
+                            background: 'hsl(var(--error-subtle))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'hsl(var(--error))',
+                          }}
+                        >
                           <IconDoorOff size={18} />
-                        </ThemeIcon>
-                        <Text fw={600}>Blocked Ports</Text>
+                        </Box>
+                        <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Blocked Ports</Text>
                       </Group>
-                      <Badge variant="light" color="red">{overview.blocked_ports.length} denied</Badge>
+                      <Badge
+                        variant="light"
+                        size="sm"
+                        style={{
+                          background: 'hsl(var(--error-subtle))',
+                          color: 'hsl(var(--error))',
+                          border: '1px solid hsl(var(--error-border))',
+                        }}
+                      >
+                        {overview.blocked_ports.length} denied
+                      </Badge>
                     </Group>
                     {overview.blocked_ports.length === 0 ? (
-                      <Text c="dimmed" size="sm">No explicit deny rules</Text>
+                      <Text c="var(--text-tertiary)" size="sm">No explicit deny rules</Text>
                     ) : (
                       <Stack gap="xs">
                         {overview.blocked_ports.map((port, idx) => (
                           <Group key={idx} justify="space-between">
                             <Group gap="xs">
-                              <Text fw={600}>{port.port}</Text>
-                              <Text size="xs" c="dimmed">/{port.protocol}</Text>
+                              <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>{port.port}</Text>
+                              <Text size="xs" c="var(--text-tertiary)">/{port.protocol}</Text>
                             </Group>
-                            <ThemeIcon variant="light" color="red" size="sm">
+                            <Box
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: 'var(--radius-md)',
+                                background: 'hsl(var(--error-subtle))',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'hsl(var(--error))',
+                              }}
+                            >
                               <IconX size={14} />
-                            </ThemeIcon>
+                            </Box>
                           </Group>
                         ))}
                       </Stack>
                     )}
-                  </Paper>
+                  </Card>
 
-                  <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)" mt="md">
+                  <Card className="card">
                     <Group justify="space-between" mb="md">
                       <Group gap="sm">
-                        <ThemeIcon variant="light" color="blue" size="md">
+                        <Box
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 'var(--radius-md)',
+                            background: 'hsl(var(--info-subtle))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'hsl(var(--info))',
+                          }}
+                        >
                           <IconServer size={18} />
-                        </ThemeIcon>
-                        <Text fw={600}>Listening</Text>
+                        </Box>
+                        <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Listening</Text>
                       </Group>
-                      <Badge variant="light" color="blue">{listeningPorts.length} ports</Badge>
+                      <Badge
+                        variant="light"
+                        size="sm"
+                        style={{
+                          background: 'hsl(var(--info-subtle))',
+                          color: 'hsl(var(--info))',
+                          border: '1px solid hsl(var(--info-border))',
+                        }}
+                      >
+                        {listeningPorts.length} ports
+                      </Badge>
                     </Group>
                     {listeningPorts.length === 0 ? (
-                      <Text c="dimmed" size="sm">No listening ports detected</Text>
+                      <Text c="var(--text-tertiary)" size="sm">No listening ports detected</Text>
                     ) : (
                       <ScrollArea.Autosize mah={200}>
                         <Stack gap="xs">
                           {listeningPorts.map((port, idx) => (
                             <Group key={idx} justify="space-between">
                               <Group gap="xs">
-                                <Text fw={600}>{port.port}</Text>
-                                <Text size="xs" c="dimmed">- {port.service_name || 'Unknown'}</Text>
+                                <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>{port.port}</Text>
+                                <Text size="xs" c="var(--text-tertiary)">- {port.service_name || 'Unknown'}</Text>
                               </Group>
                             </Group>
                           ))}
                         </Stack>
                       </ScrollArea.Autosize>
                     )}
-                  </Paper>
+                  </Card>
                 </Grid.Col>
               </Grid>
             </Tabs.Panel>
 
             {/* Open Ports Tab */}
             <Tabs.Panel value="open" pt="md">
-              <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card">
                 <Group justify="space-between" mb="md">
                   <Group gap="sm">
-                    <ThemeIcon variant="light" color="green" size="md">
+                    <Box
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 'var(--radius-md)',
+                        background: 'hsl(var(--success-subtle))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'hsl(var(--success))',
+                      }}
+                    >
                       <IconDoorEnter size={18} />
-                    </ThemeIcon>
-                    <Text fw={600}>Open Ports (Allowed Through Firewall)</Text>
+                    </Box>
+                    <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Open Ports (Allowed Through Firewall)</Text>
                   </Group>
-                  <Button size="sm" variant="filled" color="green" leftSection={<IconPlus size={16} />} onClick={() => setShowAddRuleModal(true)}>
+                  <Button
+                    size="sm"
+                    variant="filled"
+                    color="green"
+                    leftSection={<IconPlus size={16} />}
+                    onClick={() => setShowAddRuleModal(true)}
+                    style={{
+                      background: 'hsl(var(--success))',
+                      color: 'white',
+                    }}
+                  >
                     Add Port
                   </Button>
                 </Group>
                 {overview.open_ports.length === 0 ? (
                   <Center p="xl">
                     <Stack align="center" gap="md">
-                      <ThemeIcon size="xl" variant="light" color="gray">
+                      <Box
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 'var(--radius-full)',
+                          background: 'hsl(var(--bg-tertiary))',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'hsl(var(--text-tertiary))',
+                        }}
+                      >
                         <IconDoorOff size={32} />
-                      </ThemeIcon>
-                      <Text c="dimmed">No ports are allowed through the firewall</Text>
-                      <Button size="sm" variant="filled" color="green" onClick={() => setShowAddRuleModal(true)}>
+                      </Box>
+                      <Text c="var(--text-tertiary)">No ports are allowed through the firewall</Text>
+                      <Button
+                        size="sm"
+                        variant="filled"
+                        color="green"
+                        onClick={() => setShowAddRuleModal(true)}
+                        style={{
+                          background: 'hsl(var(--success))',
+                          color: 'white',
+                        }}
+                      >
                         Allow First Port
                       </Button>
                     </Stack>
@@ -413,116 +647,208 @@ export default function FirewallManager() {
                 ) : (
                   <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
                     {overview.open_ports.map((port, idx) => (
-                      <Card key={idx} withBorder p="md" radius="md" bg="var(--mantine-color-dark-7)">
+                      <Card key={idx} className="card card-hover" style={{ background: 'hsl(var(--bg-tertiary))' }}>
                         <Group justify="space-between" mb="sm">
                           <Group gap="xs">
-                            <Text fw={700} size="xl">{port.port}</Text>
-                            <Text size="sm" c="dimmed">/{port.protocol}</Text>
+                            <Text fw={700} size="xl" style={{ color: 'hsl(var(--text-primary))' }}>{port.port}</Text>
+                            <Text size="sm" c="var(--text-tertiary)">/{port.protocol}</Text>
                           </Group>
-                          <ThemeIcon variant="light" color="green" size="md">
+                          <Box
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 'var(--radius-md)',
+                              background: 'hsl(var(--success-subtle))',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'hsl(var(--success))',
+                            }}
+                          >
                             <IconLockOpen size={18} />
-                          </ThemeIcon>
+                          </Box>
                         </Group>
-                        <Text size="sm" fw={500} mb="xs">
+                        <Text size="sm" fw={500} mb="xs" style={{ color: 'hsl(var(--text-primary))' }}>
                           {getServiceName(port.port) || port.service_name || 'Custom Service'}
                         </Text>
-                        <Divider mb="xs" />
-                        <Text size="xs" c="dimmed">Source: {port.source}</Text>
+                        <Divider mb="xs" style={{ borderColor: 'hsl(var(--border-subtle))' }} />
+                        <Text size="xs" c="var(--text-tertiary)">Source: {port.source}</Text>
                       </Card>
                     ))}
                   </SimpleGrid>
                 )}
-              </Paper>
+              </Card>
             </Tabs.Panel>
 
             {/* Blocked Ports Tab */}
             <Tabs.Panel value="blocked" pt="md">
-              <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card">
                 <Group justify="space-between" mb="md">
                   <Group gap="sm">
-                    <ThemeIcon variant="light" color="red" size="md">
+                    <Box
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 'var(--radius-md)',
+                        background: 'hsl(var(--error-subtle))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'hsl(var(--error))',
+                      }}
+                    >
                       <IconDoorOff size={18} />
-                    </ThemeIcon>
-                    <Text fw={600}>Blocked Ports (Denied by Firewall)</Text>
+                    </Box>
+                    <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Blocked Ports (Denied by Firewall)</Text>
                   </Group>
                 </Group>
                 {overview.blocked_ports.length === 0 ? (
                   <Center p="xl">
                     <Stack align="center" gap="md">
-                      <ThemeIcon size="xl" variant="light" color="green">
+                      <Box
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 'var(--radius-full)',
+                          background: 'hsl(var(--success-subtle))',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'hsl(var(--success))',
+                        }}
+                      >
                         <IconCheck size={32} />
-                      </ThemeIcon>
-                      <Text c="dimmed">No explicit deny rules configured</Text>
-                      <Text size="sm" c="dimmed">Default policy: {overview.stats.deny_rules === 0 ? 'Likely DENY' : 'Mixed'}</Text>
+                      </Box>
+                      <Text c="var(--text-tertiary)">No explicit deny rules configured</Text>
+                      <Text size="sm" c="var(--text-tertiary)">Default policy: {overview.stats.deny_rules === 0 ? 'Likely DENY' : 'Mixed'}</Text>
                     </Stack>
                   </Center>
                 ) : (
                   <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
                     {overview.blocked_ports.map((port, idx) => (
-                      <Card key={idx} withBorder p="md" radius="md" bg="var(--mantine-color-dark-7)">
+                      <Card key={idx} className="card card-hover" style={{ background: 'hsl(var(--bg-tertiary))' }}>
                         <Group justify="space-between" mb="sm">
                           <Group gap="xs">
-                            <Text fw={700} size="xl">{port.port}</Text>
-                            <Text size="sm" c="dimmed">/{port.protocol}</Text>
+                            <Text fw={700} size="xl" style={{ color: 'hsl(var(--text-primary))' }}>{port.port}</Text>
+                            <Text size="sm" c="var(--text-tertiary)">/{port.protocol}</Text>
                           </Group>
-                          <ThemeIcon variant="light" color="red" size="md">
+                          <Box
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 'var(--radius-md)',
+                              background: 'hsl(var(--error-subtle))',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'hsl(var(--error))',
+                            }}
+                          >
                             <IconLock size={18} />
-                          </ThemeIcon>
+                          </Box>
                         </Group>
-                        <Text size="sm" fw={500} mb="xs">
+                        <Text size="sm" fw={500} mb="xs" style={{ color: 'hsl(var(--text-primary))' }}>
                           {getServiceName(port.port) || port.service_name || 'Custom Service'}
                         </Text>
-                        <Divider mb="xs" />
-                        <Text size="xs" c="dimmed">Source: {port.source}</Text>
+                        <Divider mb="xs" style={{ borderColor: 'hsl(var(--border-subtle))' }} />
+                        <Text size="xs" c="var(--text-tertiary)">Source: {port.source}</Text>
                       </Card>
                     ))}
                   </SimpleGrid>
                 )}
-              </Paper>
+              </Card>
             </Tabs.Panel>
 
             {/* Listening Ports Tab */}
             <Tabs.Panel value="listening" pt="md">
-              <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card">
                 <Group justify="space-between" mb="md">
                   <Group gap="sm">
-                    <ThemeIcon variant="light" color="blue" size="md">
+                    <Box
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 'var(--radius-md)',
+                        background: 'hsl(var(--info-subtle))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'hsl(var(--info))',
+                      }}
+                    >
                       <IconServer size={18} />
-                    </ThemeIcon>
-                    <Text fw={600}>Listening Ports (Services Running on Server)</Text>
+                    </Box>
+                    <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Listening Ports (Services Running on Server)</Text>
                   </Group>
-                  <Badge variant="light" color="blue">{listeningPorts.length} services</Badge>
+                  <Badge
+                    variant="light"
+                    size="sm"
+                    style={{
+                      background: 'hsl(var(--info-subtle))',
+                      color: 'hsl(var(--info))',
+                      border: '1px solid hsl(var(--info-border))',
+                    }}
+                  >
+                    {listeningPorts.length} services
+                  </Badge>
                 </Group>
                 {listeningPorts.length === 0 ? (
                   <Center p="xl">
-                    <Text c="dimmed">No listening TCP ports detected</Text>
+                    <Text c="var(--text-tertiary)">No listening TCP ports detected</Text>
                   </Center>
                 ) : (
                   <Stack gap="xs">
                     {listeningPorts.map((port, idx) => {
                       const isOpenInFirewall = overview.open_ports.some(p => p.port === port.port);
                       return (
-                        <Card key={idx} withBorder p="md" radius="md" bg="var(--mantine-color-dark-7)">
+                        <Card key={idx} className="card card-hover" style={{ background: 'hsl(var(--bg-tertiary))' }}>
                           <Group justify="space-between">
                             <Group gap="md">
-                              <ThemeIcon
-                                variant="light"
-                                color={isOpenInFirewall ? 'green' : 'orange'}
-                                size="md"
+                              <Box
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: 'var(--radius-md)',
+                                  background: isOpenInFirewall ? 'hsl(var(--success-subtle))' : 'hsl(var(--warning-subtle))',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: isOpenInFirewall ? 'hsl(var(--success))' : 'hsl(var(--warning))',
+                                }}
                               >
                                 {isOpenInFirewall ? <IconCheck size={18} /> : <IconAlertTriangle size={18} />}
-                              </ThemeIcon>
+                              </Box>
                               <Stack gap={0}>
                                 <Group gap="xs">
-                                  <Text fw={700} size="lg">{port.port}</Text>
-                                  <Text size="sm" c="dimmed">/{port.protocol}</Text>
+                                  <Text fw={700} size="lg" style={{ color: 'hsl(var(--text-primary))' }}>{port.port}</Text>
+                                  <Text size="sm" c="var(--text-tertiary)">/{port.protocol}</Text>
                                   {isOpenInFirewall ? (
-                                    <Badge size="sm" variant="light" color="green">Open in firewall</Badge>
+                                    <Badge
+                                      size="sm"
+                                      variant="light"
+                                      style={{
+                                        background: 'hsl(var(--success-subtle))',
+                                        color: 'hsl(var(--success))',
+                                        border: '1px solid hsl(var(--success-border))',
+                                      }}
+                                    >
+                                      Open in firewall
+                                    </Badge>
                                   ) : (
-                                    <Badge size="sm" variant="light" color="orange">Blocked by firewall</Badge>
+                                    <Badge
+                                      size="sm"
+                                      variant="light"
+                                      style={{
+                                        background: 'hsl(var(--warning-subtle))',
+                                        color: 'hsl(var(--warning))',
+                                        border: '1px solid hsl(var(--warning-border))',
+                                      }}
+                                    >
+                                      Blocked by firewall
+                                    </Badge>
                                   )}
                                 </Group>
-                                <Text size="sm" c="dimmed">{port.service_name || 'Unknown service'}</Text>
+                                <Text size="sm" c="var(--text-tertiary)">{port.service_name || 'Unknown service'}</Text>
                               </Stack>
                             </Group>
                             {!isOpenInFirewall && (
@@ -543,6 +869,11 @@ export default function FirewallManager() {
                                     addToast(`Failed: ${error.message}`, 'error');
                                   }
                                 }}
+                                style={{
+                                  background: 'hsl(var(--success-subtle))',
+                                  color: 'hsl(var(--success))',
+                                  border: '1px solid hsl(var(--success-border))',
+                                }}
                               >
                                 Allow
                               </Button>
@@ -553,64 +884,127 @@ export default function FirewallManager() {
                     })}
                   </Stack>
                 )}
-              </Paper>
+              </Card>
             </Tabs.Panel>
 
             {/* All Rules Tab */}
             <Tabs.Panel value="rules" pt="md">
-              <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card">
                 <Group justify="space-between" mb="md">
                   <Group gap="sm">
-                    <ThemeIcon variant="light" color="blue" size="md">
+                    <Box
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 'var(--radius-md)',
+                        background: 'hsl(var(--primary-subtle))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'hsl(var(--primary))',
+                      }}
+                    >
                       <IconList size={18} />
-                    </ThemeIcon>
-                    <Text fw={600}>All Firewall Rules</Text>
+                    </Box>
+                    <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>All Firewall Rules</Text>
                   </Group>
-                  <Badge variant="light">{overview.all_rules.length} rules</Badge>
+                  <Badge
+                    variant="light"
+                    size="sm"
+                    style={{
+                      background: 'hsl(var(--bg-tertiary))',
+                      color: 'hsl(var(--text-secondary))',
+                      border: '1px solid hsl(var(--border-default))',
+                    }}
+                  >
+                    {overview.all_rules.length} rules
+                  </Badge>
                 </Group>
                 {overview.all_rules.length === 0 ? (
                   <Center p="xl">
                     <Stack align="center" gap="md">
-                      <ThemeIcon size="xl" variant="light" color="gray">
+                      <Box
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 'var(--radius-full)',
+                          background: 'hsl(var(--bg-tertiary))',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'hsl(var(--text-tertiary))',
+                        }}
+                      >
                         <IconShieldOff size={32} />
-                      </ThemeIcon>
-                      <Text c="dimmed">No firewall rules configured</Text>
+                      </Box>
+                      <Text c="var(--text-tertiary)">No firewall rules configured</Text>
                     </Stack>
                   </Center>
                 ) : (
                   <ScrollArea.Autosize mah={400}>
                     <Stack gap="xs">
                       {overview.all_rules.map((rule, idx) => (
-                        <Card key={idx} withBorder p="sm" radius="md" bg="var(--mantine-color-dark-7)">
+                        <Card key={idx} className="card card-hover" style={{ background: 'hsl(var(--bg-tertiary))' }}>
                           <Group justify="space-between">
                             <Group gap="md">
-                              <ThemeIcon
-                                variant="light"
-                                color={rule.action.toUpperCase().includes('ALLOW') ? 'green' : rule.action.toUpperCase().includes('DENY') ? 'red' : 'yellow'}
-                                size="md"
+                              <Box
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: 'var(--radius-md)',
+                                  background: rule.action.toUpperCase().includes('ALLOW')
+                                    ? 'hsl(var(--success-subtle))'
+                                    : rule.action.toUpperCase().includes('DENY')
+                                      ? 'hsl(var(--error-subtle))'
+                                      : 'hsl(var(--warning-subtle))',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: rule.action.toUpperCase().includes('ALLOW')
+                                    ? 'hsl(var(--success))'
+                                    : rule.action.toUpperCase().includes('DENY')
+                                      ? 'hsl(var(--error))'
+                                      : 'hsl(var(--warning))',
+                                }}
                               >
-                                {rule.action.toUpperCase().includes('ALLOW') ? <IconCheck size={16} /> : rule.action.toUpperCase().includes('DENY') ? <IconX size={16} /> : <IconAlertTriangle size={16} />}
-                              </ThemeIcon>
+                                {rule.action.toUpperCase().includes('ALLOW') ? (
+                                  <IconCheck size={16} />
+                                ) : rule.action.toUpperCase().includes('DENY') ? (
+                                  <IconX size={16} />
+                                ) : (
+                                  <IconAlertTriangle size={16} />
+                                )}
+                              </Box>
                               <Stack gap={2}>
                                 <Group gap="xs">
                                   <Badge
                                     variant="filled"
-                                    color={rule.action.toUpperCase().includes('ALLOW') ? 'green' : rule.action.toUpperCase().includes('DENY') ? 'red' : 'yellow'}
                                     size="sm"
+                                    style={{
+                                      background: rule.action.toUpperCase().includes('ALLOW')
+                                        ? 'hsl(var(--success))'
+                                        : rule.action.toUpperCase().includes('DENY')
+                                          ? 'hsl(var(--error))'
+                                          : 'hsl(var(--warning))',
+                                      color: 'white',
+                                    }}
                                   >
                                     {rule.action.toUpperCase()}
                                   </Badge>
                                   {rule.port && (
-                                    <Text size="sm" fw={600}>Port {rule.port}</Text>
+                                    <Text size="sm" fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Port {rule.port}</Text>
                                   )}
                                 </Group>
-                                <Text size="xs" c="dimmed">From: {rule.from}</Text>
+                                <Text size="xs" c="var(--text-tertiary)">From: {rule.from}</Text>
                               </Stack>
                             </Group>
                             <ActionIcon
                               variant="subtle"
-                              color="red"
                               onClick={() => setDeleteConfirm(idx + 1)}
+                              style={{
+                                background: 'hsl(var(--error-subtle))',
+                                color: 'hsl(var(--error))',
+                              }}
                             >
                               <IconTrash size={16} />
                             </ActionIcon>
@@ -620,18 +1014,29 @@ export default function FirewallManager() {
                     </Stack>
                   </ScrollArea.Autosize>
                 )}
-              </Paper>
+              </Card>
             </Tabs.Panel>
           </Tabs>
 
           {/* Quick Add Ports */}
-          <Paper withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+          <Card className="card" style={{ marginTop: 'var(--space-4)' }}>
             <Group justify="space-between" mb="md">
               <Group gap="sm">
-                <ThemeIcon variant="light" color="violet" size="md">
+                <Box
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 'var(--radius-md)',
+                    background: 'hsl(var(--violet-subtle, var(--bg-tertiary)))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'hsl(var(--chart-6))',
+                  }}
+                >
                   <IconFlame size={18} />
-                </ThemeIcon>
-                <Text fw={600}>Quick Add Common Ports</Text>
+                </Box>
+                <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Quick Add Common Ports</Text>
               </Group>
             </Group>
             <SimpleGrid cols={{ base: 3, sm: 4, md: 6 }}>
@@ -657,92 +1062,366 @@ export default function FirewallManager() {
                         addToast(`Failed: ${error.message}`, 'error');
                       }
                     }}
+                    style={{
+                      background: isAlreadyOpen
+                        ? 'hsl(var(--success-subtle))'
+                        : 'hsl(var(--bg-tertiary))',
+                      color: isAlreadyOpen
+                        ? 'hsl(var(--success))'
+                        : 'hsl(var(--text-secondary))',
+                      border: `1px solid hsl(var(--${isAlreadyOpen ? 'success' : 'border-default'}-border))`,
+                    }}
                   >
                     {port} {name}
                   </Button>
                 );
               })}
             </SimpleGrid>
-          </Paper>
+          </Card>
         </>
       )}
 
       {/* Add Rule Modal */}
-      <Modal opened={showAddRuleModal} onClose={() => setShowAddRuleModal(false)} title="Allow Port" size="md">
+      <Modal
+        opened={showAddRuleModal}
+        onClose={() => setShowAddRuleModal(false)}
+        title={
+          <Group gap="sm">
+            <Box
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-md)',
+                background: 'hsl(var(--success-subtle))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--success))',
+              }}
+            >
+              <IconPlus size={16} />
+            </Box>
+            <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Allow Port</Text>
+          </Group>
+        }
+        size="md"
+        centered
+        styles={{
+          content: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+            border: '1px solid hsl(var(--border-default))',
+          },
+          header: {
+            borderBottom: '1px solid hsl(var(--border-subtle))',
+          },
+          body: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+          },
+        }}
+      >
         <Stack gap="md">
           <TextInput
             label="Port"
             placeholder="e.g., 80, 443, 22"
             value={newRule.port}
             onChange={(e) => setNewRule({ ...newRule, port: e.target.value })}
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+            }}
           />
           <Select
             label="Protocol"
             value={newRule.protocol}
             onChange={(v) => setNewRule({ ...newRule, protocol: v || 'tcp' })}
             data={[{ value: 'tcp', label: 'TCP' }, { value: 'udp', label: 'UDP' }]}
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+            }}
           />
           <TextInput
             label="From IP (optional)"
             placeholder="any"
             value={newRule.fromIp}
             onChange={(e) => setNewRule({ ...newRule, fromIp: e.target.value })}
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+            }}
           />
           <Group justify="flex-end" mt="md">
-            <Button variant="subtle" onClick={() => setShowAddRuleModal(false)}>Cancel</Button>
-            <Button variant="filled" color="green" onClick={handleAddRule}>Allow Port</Button>
+            <Button
+              variant="subtle"
+              onClick={() => setShowAddRuleModal(false)}
+              style={{
+                background: 'hsl(var(--bg-tertiary))',
+                color: 'hsl(var(--text-primary))',
+                border: '1px solid hsl(var(--border-default))',
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="filled"
+              color="green"
+              onClick={handleAddRule}
+              style={{
+                background: 'hsl(var(--success))',
+                color: 'white',
+              }}
+            >
+              Allow Port
+            </Button>
           </Group>
         </Stack>
       </Modal>
 
-      {/* Delete Confirmation */}
-      <Modal opened={deleteConfirm !== null} onClose={() => setDeleteConfirm(null)} title="Delete Rule" size="sm">
+      {/* Delete Confirmation Modal */}
+      <Modal
+        opened={deleteConfirm !== null}
+        onClose={() => setDeleteConfirm(null)}
+        title={
+          <Group gap="sm">
+            <Box
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-md)',
+                background: 'hsl(var(--error-subtle))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--error))',
+              }}
+            >
+              <IconTrash size={16} />
+            </Box>
+            <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Delete Rule</Text>
+          </Group>
+        }
+        size="sm"
+        centered
+        styles={{
+          content: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+            border: '1px solid hsl(var(--border-default))',
+          },
+          header: {
+            borderBottom: '1px solid hsl(var(--border-subtle))',
+          },
+          body: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+          },
+        }}
+      >
         <Stack gap="md">
-          <Alert icon={<IconAlertTriangle size={18} />} color="orange">
-            Delete rule #{deleteConfirm}? This cannot be undone.
+          <Alert
+            icon={<IconAlertTriangle size={18} />}
+            color="orange"
+            style={{
+              background: 'hsl(var(--warning-subtle))',
+              border: '1px solid hsl(var(--warning-border))',
+              color: 'hsl(var(--text-primary))',
+            }}
+          >
+            <Text size="sm">Delete rule #{deleteConfirm}? This cannot be undone.</Text>
           </Alert>
           <Group justify="flex-end">
-            <Button variant="subtle" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button variant="filled" color="red" onClick={() => deleteConfirm && handleDeleteRule(deleteConfirm)}>Delete</Button>
+            <Button
+              variant="subtle"
+              onClick={() => setDeleteConfirm(null)}
+              style={{
+                background: 'hsl(var(--bg-tertiary))',
+                color: 'hsl(var(--text-primary))',
+                border: '1px solid hsl(var(--border-default))',
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="filled"
+              color="red"
+              onClick={() => deleteConfirm && handleDeleteRule(deleteConfirm)}
+              style={{
+                background: 'hsl(var(--error))',
+                color: 'white',
+              }}
+            >
+              Delete
+            </Button>
           </Group>
         </Stack>
       </Modal>
 
       {/* Settings Modal */}
-      <Modal opened={showSettingsModal} onClose={() => setShowSettingsModal(false)} title="Firewall Settings" size="md">
+      <Modal
+        opened={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        title={
+          <Group gap="sm">
+            <Box
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-md)',
+                background: 'hsl(var(--primary-subtle))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--primary))',
+              }}
+            >
+              <IconSettings size={16} />
+            </Box>
+            <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Firewall Settings</Text>
+          </Group>
+        }
+        size="md"
+        centered
+        styles={{
+          content: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+            border: '1px solid hsl(var(--border-default))',
+          },
+          header: {
+            borderBottom: '1px solid hsl(var(--border-subtle))',
+          },
+          body: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+          },
+        }}
+      >
         <Stack gap="md">
-          <Paper withBorder p="md" radius="md">
-            <Text fw={600} mb="sm" size="sm">Default Policies</Text>
+          <Card className="card">
+            <Text fw={600} mb="sm" size="sm" style={{ color: 'hsl(var(--text-primary))' }}>Default Policies</Text>
             <Stack gap="sm">
               <Group justify="space-between">
-                <Text size="sm">Incoming</Text>
+                <Text size="sm" style={{ color: 'hsl(var(--text-secondary))' }}>Incoming</Text>
                 <Group gap="xs">
-                  <Button size="compact-xs" variant={settings.defaultIncoming === 'deny' ? 'filled' : 'outline'} color="red" onClick={() => { setSettings({ ...settings, defaultIncoming: 'deny' }); handleSetDefault('incoming', 'deny'); }}>Deny</Button>
-                  <Button size="compact-xs" variant={settings.defaultIncoming === 'allow' ? 'filled' : 'outline'} color="green" onClick={() => { setSettings({ ...settings, defaultIncoming: 'allow' }); handleSetDefault('incoming', 'allow'); }}>Allow</Button>
+                  <Button
+                    size="compact-xs"
+                    variant={settings.defaultIncoming === 'deny' ? 'filled' : 'outline'}
+                    color="red"
+                    onClick={() => {
+                      setSettings({ ...settings, defaultIncoming: 'deny' });
+                      handleSetDefault('incoming', 'deny');
+                    }}
+                    style={{
+                      background: settings.defaultIncoming === 'deny' ? 'hsl(var(--error))' : 'transparent',
+                      color: settings.defaultIncoming === 'deny' ? 'white' : 'hsl(var(--error))',
+                      border: `1px solid hsl(var(--error-border))`,
+                    }}
+                  >
+                    Deny
+                  </Button>
+                  <Button
+                    size="compact-xs"
+                    variant={settings.defaultIncoming === 'allow' ? 'filled' : 'outline'}
+                    color="green"
+                    onClick={() => {
+                      setSettings({ ...settings, defaultIncoming: 'allow' });
+                      handleSetDefault('incoming', 'allow');
+                    }}
+                    style={{
+                      background: settings.defaultIncoming === 'allow' ? 'hsl(var(--success))' : 'transparent',
+                      color: settings.defaultIncoming === 'allow' ? 'white' : 'hsl(var(--success))',
+                      border: `1px solid hsl(var(--success-border))`,
+                    }}
+                  >
+                    Allow
+                  </Button>
                 </Group>
               </Group>
               <Group justify="space-between">
-                <Text size="sm">Outgoing</Text>
+                <Text size="sm" style={{ color: 'hsl(var(--text-secondary))' }}>Outgoing</Text>
                 <Group gap="xs">
-                  <Button size="compact-xs" variant={settings.defaultOutgoing === 'deny' ? 'filled' : 'outline'} color="red" onClick={() => { setSettings({ ...settings, defaultOutgoing: 'deny' }); handleSetDefault('outgoing', 'deny'); }}>Deny</Button>
-                  <Button size="compact-xs" variant={settings.defaultOutgoing === 'allow' ? 'filled' : 'outline'} color="green" onClick={() => { setSettings({ ...settings, defaultOutgoing: 'allow' }); handleSetDefault('outgoing', 'allow'); }}>Allow</Button>
+                  <Button
+                    size="compact-xs"
+                    variant={settings.defaultOutgoing === 'deny' ? 'filled' : 'outline'}
+                    color="red"
+                    onClick={() => {
+                      setSettings({ ...settings, defaultOutgoing: 'deny' });
+                      handleSetDefault('outgoing', 'deny');
+                    }}
+                    style={{
+                      background: settings.defaultOutgoing === 'deny' ? 'hsl(var(--error))' : 'transparent',
+                      color: settings.defaultOutgoing === 'deny' ? 'white' : 'hsl(var(--error))',
+                      border: `1px solid hsl(var(--error-border))`,
+                    }}
+                  >
+                    Deny
+                  </Button>
+                  <Button
+                    size="compact-xs"
+                    variant={settings.defaultOutgoing === 'allow' ? 'filled' : 'outline'}
+                    color="green"
+                    onClick={() => {
+                      setSettings({ ...settings, defaultOutgoing: 'allow' });
+                      handleSetDefault('outgoing', 'allow');
+                    }}
+                    style={{
+                      background: settings.defaultOutgoing === 'allow' ? 'hsl(var(--success))' : 'transparent',
+                      color: settings.defaultOutgoing === 'allow' ? 'white' : 'hsl(var(--success))',
+                      border: `1px solid hsl(var(--success-border))`,
+                    }}
+                  >
+                    Allow
+                  </Button>
                 </Group>
               </Group>
             </Stack>
-          </Paper>
-          <Paper withBorder p="md" radius="md">
-            <Text fw={600} mb="sm" size="sm">Logging Level</Text>
+          </Card>
+
+          <Card className="card">
+            <Text fw={600} mb="sm" size="sm" style={{ color: 'hsl(var(--text-primary))' }}>Logging Level</Text>
             <Group gap="xs" wrap="wrap">
               {['off', 'low', 'medium', 'high', 'full'].map((level) => (
-                <Button key={level} size="compact-xs" variant={settings.logging === level ? 'filled' : 'outline'} color="blue" onClick={() => { setSettings({ ...settings, logging: level }); handleSetLogging(level); }}>{level}</Button>
+                <Button
+                  key={level}
+                  size="compact-xs"
+                  variant={settings.logging === level ? 'filled' : 'outline'}
+                  color="blue"
+                  onClick={() => {
+                    setSettings({ ...settings, logging: level });
+                    handleSetLogging(level);
+                  }}
+                  style={{
+                    background: settings.logging === level ? 'hsl(var(--primary))' : 'transparent',
+                    color: settings.logging === level ? 'white' : 'hsl(var(--primary))',
+                    border: `1px solid hsl(var(--primary-border))`,
+                  }}
+                >
+                  {level}
+                </Button>
               ))}
             </Group>
-          </Paper>
-          <Alert icon={<IconAlertTriangle size={18} />} color="yellow">
-            <Text size="sm"><strong>Warning:</strong> Be careful not to lock yourself out by denying SSH (port 22).</Text>
+          </Card>
+
+          <Alert
+            icon={<IconAlertTriangle size={18} />}
+            color="yellow"
+            style={{
+              background: 'hsl(var(--warning-subtle))',
+              border: '1px solid hsl(var(--warning-border))',
+              color: 'hsl(var(--text-primary))',
+            }}
+          >
+            <Text size="sm">
+              <strong style={{ color: 'hsl(var(--text-primary))' }}>Warning:</strong> Be careful not to lock yourself out by denying SSH (port 22).
+            </Text>
           </Alert>
         </Stack>
       </Modal>
-    </Stack>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useServer } from '../context/ServerContext';
 import { useToast } from '../context/ToastContext';
@@ -25,7 +25,7 @@ interface NginxVhost {
   root_path: string;
 }
 
-export default function NginxManager() {
+const NginxManager = memo(function NginxManager() {
   const { isConnected } = useServer();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -45,7 +45,6 @@ export default function NginxManager() {
       const data = await invoke<NginxStatus>('nginx_status');
       setStatus(data);
     } catch (err: any) {
-      // Nginx might not be installed
       console.log('Nginx status error:', err.message);
     } finally {
       setLoading(false);
@@ -193,7 +192,6 @@ export default function NginxManager() {
     try {
       const logs = await invoke<string>('get_nginx_logs', { logType: type, lines: 200 });
       addToast(`Loaded ${type} logs`, 'success');
-      // Could open in a modal or redirect to log viewer
       console.log(logs);
     } catch (err: any) {
       addToast(`Failed to load logs: ${err.message}`, 'error');
@@ -202,46 +200,78 @@ export default function NginxManager() {
 
   if (!isConnected) {
     return (
-      <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-dark-6)">
-        <Stack align="center" gap="md">
-          <ThemeIcon size="lg" variant="light" color="gray">
-            <IconServer size={24} />
-          </ThemeIcon>
-          <Text c="dimmed">Connect to a server to manage Nginx</Text>
-        </Stack>
-      </Paper>
+      <div className="page-container animate-fade-in-up">
+        <Card className="card card-elevated" style={{ maxWidth: 500, margin: '0 auto' }}>
+          <Stack align="center" gap="md" style={{ padding: 'var(--space-8)' }}>
+            <Box
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 'var(--radius-full)',
+                background: 'hsl(var(--bg-tertiary))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--text-tertiary))',
+              }}
+            >
+              <IconServer size={32} />
+            </Box>
+            <Text size="xl" fw={600} c="var(--text-primary)">Nginx Manager</Text>
+            <Text size="sm" c="var(--text-secondary)" style={{ textAlign: 'center' }}>
+              Connect to a server to manage Nginx
+            </Text>
+          </Stack>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Stack gap="md" h="calc(100vh - 140px)">
+    <div className="page-container animate-fade-in-up">
       {/* Header */}
-      <Group justify="space-between">
+      <Group justify="space-between" className="mb-6" style={{ marginBottom: 'var(--space-6)' }}>
         <Group gap="sm">
-          <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
-            <IconServer size={20} />
-          </ThemeIcon>
+          <Box
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 'var(--radius-lg)',
+              background: 'hsl(var(--primary-subtle))',
+              border: '1px solid hsl(var(--primary-border))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'hsl(var(--primary))',
+            }}
+          >
+            <IconServer size={24} />
+          </Box>
           <Stack gap={0}>
-            <Title order={3}>Nginx Manager</Title>
-            <Text size="xs" c="dimmed">Manage web server and virtual hosts</Text>
+            <Title order={3} style={{ color: 'hsl(var(--text-primary))', fontSize: 'var(--text-lg)', fontWeight: 600 }}>
+              Nginx Manager
+            </Title>
+            <Text size="xs" c="var(--text-tertiary)">Manage web server and virtual hosts</Text>
           </Stack>
         </Group>
-        <Group gap="xs">
-          <Button
-            variant="outline"
-            color="blue"
-            leftSection={<IconRefresh size={18} />}
-            onClick={() => { fetchStatus(); fetchVhosts(); }}
-            loading={loading}
-            size="sm"
-          >
-            Refresh
-          </Button>
-        </Group>
+        <Button
+          variant="subtle"
+          size="compact-sm"
+          onClick={() => { fetchStatus(); fetchVhosts(); }}
+          loading={loading}
+          leftSection={<IconRefresh size={16} />}
+          style={{
+            background: 'hsl(var(--bg-tertiary))',
+            color: 'hsl(var(--text-primary))',
+            border: '1px solid hsl(var(--border-default))',
+          }}
+        >
+          Refresh
+        </Button>
       </Group>
 
-      <Tabs value={activeTab} onChange={(v) => setActiveTab(v || 'overview')}>
-        <Tabs.List>
+      <Tabs value={activeTab} onChange={(v) => setActiveTab(v || 'overview')} variant="pills">
+        <Tabs.List style={{ marginBottom: 'var(--space-4)' }}>
           <Tabs.Tab value="overview">Overview</Tabs.Tab>
           <Tabs.Tab value="vhosts">Virtual Hosts ({vhosts.length})</Tabs.Tab>
           <Tabs.Tab value="logs">Logs</Tabs.Tab>
@@ -249,73 +279,126 @@ export default function NginxManager() {
 
         {/* Overview Tab */}
         <Tabs.Panel value="overview" pt="md">
-          <Grid gutter="md">
+          {/* Status Cards */}
+          <Grid gutter="md" style={{ marginBottom: 'var(--space-4)' }}>
             <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-              <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card card-hover">
                 <Group justify="space-between">
                   <Stack gap={0}>
-                    <Text size="xs" c="dimmed">Status</Text>
-                    <Text size="xl" fw={700} c={status?.running ? 'green' : 'red'}>
-                      {status?.running ? 'Running' : 'Stopped'}
-                    </Text>
+                    <Text size="sm" c="var(--text-tertiary)" fw={500}>Status</Text>
+                    <Group gap="xs" mt="xs">
+                      <Text size="2xl" fw={700} style={{ color: status?.running ? 'hsl(var(--success))' : 'hsl(var(--error))' }}>
+                        {status?.running ? 'Running' : 'Stopped'}
+                      </Text>
+                    </Group>
                   </Stack>
-                  <ThemeIcon variant="light" color={status?.running ? 'green' : 'red'} size="lg">
+                  <Box
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 'var(--radius-md)',
+                      background: status?.running ? 'hsl(var(--success-subtle))' : 'hsl(var(--error-subtle))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: status?.running ? 'hsl(var(--success))' : 'hsl(var(--error))',
+                    }}
+                  >
                     {status?.running ? <IconCheck size={20} /> : <IconX size={20} />}
-                  </ThemeIcon>
+                  </Box>
                 </Group>
               </Card>
             </Grid.Col>
 
             <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-              <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card card-hover">
                 <Group justify="space-between">
                   <Stack gap={0}>
-                    <Text size="xs" c="dimmed">Version</Text>
-                    <Text size="xl" fw={700}>{status?.version || 'N/A'}</Text>
+                    <Text size="sm" c="var(--text-tertiary)" fw={500}>Version</Text>
+                    <Text size="2xl" fw={700} style={{ color: 'hsl(var(--text-primary))' }}>{status?.version || 'N/A'}</Text>
                   </Stack>
-                  <ThemeIcon variant="light" color="blue" size="lg">
+                  <Box
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 'var(--radius-md)',
+                      background: 'hsl(var(--primary-subtle))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'hsl(var(--primary))',
+                    }}
+                  >
                     <IconServer size={20} />
-                  </ThemeIcon>
+                  </Box>
                 </Group>
               </Card>
             </Grid.Col>
 
             <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-              <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card card-hover">
                 <Group justify="space-between">
                   <Stack gap={0}>
-                    <Text size="xs" c="dimmed">Workers</Text>
-                    <Text size="xl" fw={700}>{status?.worker_processes || 'auto'}</Text>
+                    <Text size="sm" c="var(--text-tertiary)" fw={500}>Workers</Text>
+                    <Text size="2xl" fw={700} style={{ color: 'hsl(var(--text-primary))' }}>{status?.worker_processes || 'auto'}</Text>
                   </Stack>
-                  <ThemeIcon variant="light" color="violet" size="lg">
+                  <Box
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 'var(--radius-md)',
+                      background: 'hsl(var(--violet-subtle, var(--bg-tertiary)))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'hsl(var(--chart-6))',
+                    }}
+                  >
                     <IconServer size={20} />
-                  </ThemeIcon>
+                  </Box>
                 </Group>
               </Card>
             </Grid.Col>
 
             <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-              <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card card-hover">
                 <Group justify="space-between">
                   <Stack gap={0}>
-                    <Text size="xs" c="dimmed">Virtual Hosts</Text>
-                    <Text size="xl" fw={700}>{vhosts.length}</Text>
+                    <Text size="sm" c="var(--text-tertiary)" fw={500}>Virtual Hosts</Text>
+                    <Text size="2xl" fw={700} style={{ color: 'hsl(var(--text-primary))' }}>{vhosts.length}</Text>
                   </Stack>
-                  <ThemeIcon variant="light" color="cyan" size="lg">
+                  <Box
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 'var(--radius-md)',
+                      background: 'hsl(var(--info-subtle))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'hsl(var(--info))',
+                    }}
+                  >
                     <IconWorld size={20} />
-                  </ThemeIcon>
+                  </Box>
                 </Group>
               </Card>
             </Grid.Col>
           </Grid>
 
-          <Card withBorder radius="md" bg="var(--mantine-color-dark-6)" mt="md">
-            <Text fw={600} mb="md">Quick Actions</Text>
-            <Group gap="xs">
+          {/* Quick Actions */}
+          <Card className="card" style={{ marginBottom: 'var(--space-4)' }}>
+            <Text fw={600} size="sm" style={{ color: 'hsl(var(--text-primary))', marginBottom: 'var(--space-4)' }}>Quick Actions</Text>
+            <Group gap="xs" wrap="wrap">
               {status?.running ? (
                 <Button
-                  color="red"
-                  variant="light"
+                  style={{
+                    background: 'hsl(var(--error-subtle))',
+                    color: 'hsl(var(--error))',
+                    border: '1px solid hsl(var(--error-border))',
+                  }}
+                  variant="subtle"
+                  size="sm"
                   leftSection={<IconPlayerStop size={18} />}
                   onClick={() => handleNginxAction('stop')}
                   loading={loading}
@@ -324,8 +407,13 @@ export default function NginxManager() {
                 </Button>
               ) : (
                 <Button
-                  color="green"
-                  variant="light"
+                  style={{
+                    background: 'hsl(var(--success-subtle))',
+                    color: 'hsl(var(--success))',
+                    border: '1px solid hsl(var(--success-border))',
+                  }}
+                  variant="subtle"
+                  size="sm"
                   leftSection={<IconPlayerPlay size={18} />}
                   onClick={() => handleNginxAction('start')}
                   loading={loading}
@@ -334,8 +422,13 @@ export default function NginxManager() {
                 </Button>
               )}
               <Button
-                color="blue"
-                variant="light"
+                style={{
+                  background: 'hsl(var(--primary-subtle))',
+                  color: 'hsl(var(--primary))',
+                  border: '1px solid hsl(var(--primary-border))',
+                }}
+                variant="subtle"
+                size="sm"
                 leftSection={<IconReload size={18} />}
                 onClick={() => handleNginxAction('restart')}
                 loading={loading}
@@ -343,18 +436,28 @@ export default function NginxManager() {
                 Restart
               </Button>
               <Button
-                color="cyan"
-                variant="light"
+                style={{
+                  background: 'hsl(var(--info-subtle))',
+                  color: 'hsl(var(--info))',
+                  border: '1px solid hsl(var(--info-border))',
+                }}
+                variant="subtle"
+                size="sm"
                 leftSection={<IconReload size={18} />}
                 onClick={() => handleNginxAction('reload')}
                 loading={loading}
               >
                 Reload
               </Button>
-              <Divider orientation="vertical" />
+              <Divider orientation="vertical" style={{ borderColor: 'hsl(var(--border-subtle))', height: 24 }} />
               <Button
-                color="green"
-                variant="light"
+                style={{
+                  background: 'hsl(var(--success-subtle))',
+                  color: 'hsl(var(--success))',
+                  border: '1px solid hsl(var(--success-border))',
+                }}
+                variant="subtle"
+                size="sm"
                 leftSection={<IconCheck size={18} />}
                 onClick={handleTestConfig}
                 loading={loading}
@@ -362,8 +465,13 @@ export default function NginxManager() {
                 Test Config
               </Button>
               <Button
-                color="gray"
-                variant="light"
+                style={{
+                  background: 'hsl(var(--bg-tertiary))',
+                  color: 'hsl(var(--text-primary))',
+                  border: '1px solid hsl(var(--border-default))',
+                }}
+                variant="subtle"
+                size="sm"
                 leftSection={<IconFileCode size={18} />}
                 onClick={openMainConfig}
               >
@@ -372,9 +480,26 @@ export default function NginxManager() {
             </Group>
 
             {status && !status.config_test.includes('syntax is ok') && (
-              <Box mt="md" p="md" bg="var(--mantine-color-red-filled)" style={{ borderRadius: 'var(--mantine-radius-md)' }}>
-                <Text size="sm" c="white" fw={600}>Config Test Failed:</Text>
-                <Code block c="white" mt="xs">{status.config_test}</Code>
+              <Box
+                mt="md"
+                p="md"
+                style={{
+                  background: 'hsl(var(--error-subtle))',
+                  border: '1px solid hsl(var(--error-border))',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              >
+                <Text size="sm" fw={600} style={{ color: 'hsl(var(--error))', marginBottom: 'var(--space-2)' }}>Config Test Failed:</Text>
+                <Code
+                  block
+                  style={{
+                    background: 'hsl(var(--bg-primary))',
+                    color: 'hsl(var(--text-primary))',
+                    border: '1px solid hsl(var(--border-subtle))',
+                  }}
+                >
+                  {status.config_test}
+                </Code>
               </Box>
             )}
           </Card>
@@ -383,59 +508,80 @@ export default function NginxManager() {
         {/* Virtual Hosts Tab */}
         <Tabs.Panel value="vhosts" pt="md">
           {vhosts.length === 0 ? (
-            <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-dark-6)">
+            <Card className="card card-elevated">
               <Center>
-                <Stack align="center" gap="md">
-                  <ThemeIcon size="lg" variant="light" color="gray">
-                    <IconWorld size={24} />
-                  </ThemeIcon>
-                  <Text c="dimmed">No virtual hosts found</Text>
+                <Stack align="center" gap="md" style={{ padding: 'var(--space-8)' }}>
+                  <Box
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 'var(--radius-full)',
+                      background: 'hsl(var(--bg-tertiary))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'hsl(var(--text-tertiary))',
+                    }}
+                  >
+                    <IconWorld size={32} />
+                  </Box>
+                  <Text size="lg" fw={600} c="var(--text-primary)">No virtual hosts found</Text>
                 </Stack>
               </Center>
-            </Paper>
+            </Card>
           ) : (
             <Grid gutter="md">
               {vhosts.map((vhost) => (
                 <Grid.Col span={{ base: 12, md: 6, lg: 4 }} key={vhost.name}>
-                  <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
+                  <Card className="card card-hover">
                     <Group justify="space-between" mb="sm">
-                      <Text fw={600}>{vhost.name}</Text>
-                      <Badge color={vhost.enabled ? 'green' : 'gray'} variant="light">
+                      <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>{vhost.name}</Text>
+                      <Badge
+                        size="sm"
+                        variant="light"
+                        style={{
+                          background: vhost.enabled ? 'hsl(var(--success-subtle))' : 'hsl(var(--bg-tertiary))',
+                          color: vhost.enabled ? 'hsl(var(--success))' : 'hsl(var(--text-tertiary))',
+                          border: `1px solid hsl(var(--${vhost.enabled ? 'success' : 'border-default'}-border))`,
+                        }}
+                      >
                         {vhost.enabled ? 'Enabled' : 'Disabled'}
                       </Badge>
                     </Group>
 
                     <Stack gap="xs" size="xs">
                       <Group gap="xs">
-                        <Text c="dimmed">Server Name:</Text>
-                        <Text size="sm">{vhost.server_name}</Text>
+                        <Text c="var(--text-tertiary)" size="xs">Server Name:</Text>
+                        <Text size="sm" style={{ color: 'hsl(var(--text-primary))' }}>{vhost.server_name}</Text>
                       </Group>
                       <Group gap="xs">
-                        <Text c="dimmed">Listen:</Text>
-                        <Text size="sm">{vhost.listen_port}</Text>
+                        <Text c="var(--text-tertiary)" size="xs">Listen:</Text>
+                        <Text size="sm" style={{ color: 'hsl(var(--text-primary))' }}>{vhost.listen_port}</Text>
                       </Group>
                       {vhost.ssl_enabled && (
                         <Group gap="xs">
-                          <IconLock size={14} color="green" />
-                          <Text size="sm" c="green">SSL Enabled</Text>
+                          <IconLock size={14} style={{ color: 'hsl(var(--success))' }} />
+                          <Text size="sm" style={{ color: 'hsl(var(--success))' }}>SSL Enabled</Text>
                         </Group>
                       )}
                       {vhost.root_path && (
                         <Group gap="xs">
-                          <Text c="dimmed">Root:</Text>
-                          <Text size="sm" style={{ fontFamily: 'monospace' }}>{vhost.root_path}</Text>
+                          <Text c="var(--text-tertiary)" size="xs">Root:</Text>
+                          <Text size="sm" style={{ fontFamily: 'var(--font-mono)', color: 'hsl(var(--text-primary))' }}>{vhost.root_path}</Text>
                         </Group>
                       )}
                     </Stack>
 
-                    <Divider my="sm" />
+                    <Divider my="sm" style={{ borderColor: 'hsl(var(--border-subtle))' }} />
 
                     <Group justify="space-between">
                       <Group gap="xs">
                         {vhost.enabled ? (
                           <ActionIcon
-                            color="red"
-                            variant="light"
+                            style={{
+                              background: 'hsl(var(--error-subtle))',
+                              color: 'hsl(var(--error))',
+                            }}
                             size="sm"
                             onClick={() => handleDisableVhost(vhost.name)}
                             title="Disable"
@@ -444,8 +590,10 @@ export default function NginxManager() {
                           </ActionIcon>
                         ) : (
                           <ActionIcon
-                            color="green"
-                            variant="light"
+                            style={{
+                              background: 'hsl(var(--success-subtle))',
+                              color: 'hsl(var(--success))',
+                            }}
                             size="sm"
                             onClick={() => handleEnableVhost(vhost.name)}
                             title="Enable"
@@ -454,8 +602,10 @@ export default function NginxManager() {
                           </ActionIcon>
                         )}
                         <ActionIcon
-                          color="blue"
-                          variant="light"
+                          style={{
+                            background: 'hsl(var(--primary-subtle))',
+                            color: 'hsl(var(--primary))',
+                          }}
                           size="sm"
                           onClick={() => openVhostConfig(vhost)}
                           title="Edit Config"
@@ -463,8 +613,10 @@ export default function NginxManager() {
                           <IconFileCode size={16} />
                         </ActionIcon>
                         <ActionIcon
-                          color="red"
-                          variant="light"
+                          style={{
+                            background: 'hsl(var(--error-subtle))',
+                            color: 'hsl(var(--error))',
+                          }}
                           size="sm"
                           onClick={() => handleDeleteVhost(vhost.name)}
                           title="Delete"
@@ -484,16 +636,21 @@ export default function NginxManager() {
         <Tabs.Panel value="logs" pt="md">
           <Grid gutter="md">
             <Grid.Col span={{ base: 12, md: 6 }}>
-              <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card card-hover">
                 <Group justify="space-between">
                   <Stack gap={0}>
-                    <Text fw={600}>Error Log</Text>
-                    <Text size="xs" c="dimmed">/var/log/nginx/error.log</Text>
+                    <Text fw={600} size="sm" style={{ color: 'hsl(var(--text-primary))' }}>Error Log</Text>
+                    <Text size="xs" c="var(--text-tertiary)">/var/log/nginx/error.log</Text>
                   </Stack>
                   <Button
                     size="sm"
-                    variant="light"
+                    variant="subtle"
                     onClick={() => viewLogs('error')}
+                    style={{
+                      background: 'hsl(var(--primary-subtle))',
+                      color: 'hsl(var(--primary))',
+                      border: '1px solid hsl(var(--primary-border))',
+                    }}
                   >
                     View
                   </Button>
@@ -502,16 +659,21 @@ export default function NginxManager() {
             </Grid.Col>
 
             <Grid.Col span={{ base: 12, md: 6 }}>
-              <Card withBorder radius="md" bg="var(--mantine-color-dark-6)">
+              <Card className="card card-hover">
                 <Group justify="space-between">
                   <Stack gap={0}>
-                    <Text fw={600}>Access Log</Text>
-                    <Text size="xs" c="dimmed">/var/log/nginx/access.log</Text>
+                    <Text fw={600} size="sm" style={{ color: 'hsl(var(--text-primary))' }}>Access Log</Text>
+                    <Text size="xs" c="var(--text-tertiary)">/var/log/nginx/access.log</Text>
                   </Stack>
                   <Button
                     size="sm"
-                    variant="light"
+                    variant="subtle"
                     onClick={() => viewLogs('access')}
+                    style={{
+                      background: 'hsl(var(--primary-subtle))',
+                      color: 'hsl(var(--primary))',
+                      border: '1px solid hsl(var(--primary-border))',
+                    }}
                   >
                     View
                   </Button>
@@ -528,16 +690,42 @@ export default function NginxManager() {
         onClose={() => setShowConfigModal(false)}
         title={
           <Group gap="sm">
-            <IconFileCode size={20} />
-            <Text fw={600}>
+            <Box
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-md)',
+                background: 'hsl(var(--primary-subtle))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--primary))',
+              }}
+            >
+              <IconFileCode size={16} />
+            </Box>
+            <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>
               {configType === 'main' ? 'Main Nginx Config' : `Vhost: ${selectedVhost?.name}`}
             </Text>
           </Group>
         }
         size="xl"
+        centered
+        styles={{
+          content: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+            border: '1px solid hsl(var(--border-default))',
+          },
+          header: {
+            borderBottom: '1px solid hsl(var(--border-subtle))',
+          },
+          body: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+          },
+        }}
       >
         <Stack gap="md">
-          <Text size="sm" c="dimmed">
+          <Text size="sm" c="var(--text-tertiary)">
             {configType === 'main'
               ? 'Editing /etc/nginx/nginx.conf'
               : `Editing /etc/nginx/sites-available/${selectedVhost?.name}`}
@@ -548,14 +736,31 @@ export default function NginxManager() {
             autosize
             minRows={20}
             maxRows={30}
-            style={{ fontFamily: 'monospace', fontSize: 12 }}
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              background: 'hsl(var(--bg-tertiary))',
+              border: '1px solid hsl(var(--border-subtle))',
+              color: 'hsl(var(--text-primary))',
+            }}
           />
           <Group justify="flex-end">
-            <Button variant="outline" onClick={() => setShowConfigModal(false)}>
+            <Button
+              variant="subtle"
+              onClick={() => setShowConfigModal(false)}
+              style={{
+                background: 'hsl(var(--bg-tertiary))',
+                color: 'hsl(var(--text-primary))',
+                border: '1px solid hsl(var(--border-default))',
+              }}
+            >
               Cancel
             </Button>
             <Button
-              color="green"
+              style={{
+                background: 'hsl(var(--success))',
+                color: 'white',
+              }}
               onClick={configType === 'main' ? saveMainConfig : saveVhostConfig}
               loading={loading}
             >
@@ -564,6 +769,8 @@ export default function NginxManager() {
           </Group>
         </Stack>
       </Modal>
-    </Stack>
+    </div>
   );
-}
+});
+
+export default NginxManager;

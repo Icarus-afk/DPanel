@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useServer } from '../context/ServerContext';
 import { useToast } from '../context/ToastContext';
 import {
-  Paper, Text, Group, Title, Button, Stack, ScrollArea, Table, Badge, ActionIcon, Modal, Box, Loader, Center, ThemeIcon, Divider, TextInput, Card, SimpleGrid,
+  Paper, Text, Group, Title, Button, Stack, ScrollArea, Table, Badge, ActionIcon, Modal, Box, Loader, Center, Divider, TextInput, Card, SimpleGrid,
 } from '@mantine/core';
 import {
   IconRefresh, IconPlayerPlay, IconPlayerStop, IconReload, IconSettings, IconFileText, IconSearch, IconServer,
@@ -16,7 +16,7 @@ interface ServiceInfo {
   description: string;
 }
 
-export default function ServicesManager() {
+const ServicesManager = memo(function ServicesManager() {
   const { isConnected } = useServer();
   const { addToast } = useToast();
   const [services, setServices] = useState<ServiceInfo[]>([]);
@@ -105,126 +105,201 @@ export default function ServicesManager() {
 
   if (!isConnected) {
     return (
-      <Paper withBorder p="xl" radius="md" bg="var(--mantine-color-dark-6)">
-        <Stack align="center" gap="md">
-          <ThemeIcon size="lg" variant="light" color="gray">
-            <IconSettings size={24} />
-          </ThemeIcon>
-          <Text c="dimmed">Connect to a server to manage services</Text>
-        </Stack>
-      </Paper>
+      <div className="page-container animate-fade-in-up">
+        <Card className="card card-elevated" style={{ maxWidth: 500, margin: '0 auto' }}>
+          <Stack align="center" gap="md" style={{ padding: 'var(--space-8)' }}>
+            <Box
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 'var(--radius-full)',
+                background: 'hsl(var(--bg-tertiary))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--text-tertiary))',
+              }}
+            >
+              <IconSettings size={32} />
+            </Box>
+            <Text size="xl" fw={600} c="var(--text-primary)">Systemd Services</Text>
+            <Text size="sm" c="var(--text-secondary)" style={{ textAlign: 'center' }}>
+              Connect to a server to manage services
+            </Text>
+          </Stack>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Stack gap="md" h="calc(100vh - 140px)">
+    <div className="page-container animate-fade-in-up">
       {/* Header */}
-      <Group justify="space-between">
+      <Group justify="space-between" className="mb-6" style={{ marginBottom: 'var(--space-6)' }}>
         <Group gap="sm">
-          <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'orange', to: 'red' }}>
-            <IconSettings size={20} />
-          </ThemeIcon>
+          <Box
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 'var(--radius-lg)',
+              background: 'hsl(var(--warning-subtle))',
+              border: '1px solid hsl(var(--warning-border))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'hsl(var(--warning))',
+            }}
+          >
+            <IconSettings size={24} />
+          </Box>
           <Stack gap={0}>
-            <Title order={3}>Systemd Services</Title>
-            <Text size="xs" c="dimmed">Manage system services and view logs</Text>
+            <Title order={3} style={{ color: 'hsl(var(--text-primary))', fontSize: 'var(--text-lg)', fontWeight: 600 }}>
+              Systemd Services
+            </Title>
+            <Text size="xs" c="var(--text-tertiary)">
+              Manage system services and view logs
+            </Text>
           </Stack>
         </Group>
         <Button
-          variant="outline"
-          color="blue"
-          leftSection={<IconRefresh size={18} />}
+          variant="subtle"
+          size="compact-sm"
           onClick={fetchServices}
           loading={loading}
+          leftSection={<IconRefresh size={16} />}
+          style={{
+            background: 'hsl(var(--bg-tertiary))',
+            color: 'hsl(var(--text-primary))',
+            border: '1px solid hsl(var(--border-default))',
+          }}
         >
           Refresh
         </Button>
       </Group>
 
-      {/* Stats */}
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
-        <Card withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+      {/* Stats Cards */}
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} style={{ marginBottom: 'var(--space-4)' }}>
+        {/* Total Services */}
+        <Card className="card card-hover metric-card metric-card--primary">
           <Group gap="xs">
-            <ThemeIcon variant="light" color="blue" size="md">
+            <Box className="metric-card__icon metric-card__icon--primary">
               <IconServer size={18} />
-            </ThemeIcon>
+            </Box>
             <Stack gap={0}>
-              <Text size="xs" c="dimmed">Total Services</Text>
-              <Text size="xl" fw={700}>{stats.total}</Text>
+              <Text size="sm" c="var(--text-tertiary)" fw={500}>Total Services</Text>
+              <Text size="2xl" fw={700} style={{ color: 'hsl(var(--text-primary))' }}>{stats.total}</Text>
             </Stack>
           </Group>
         </Card>
-        <Card withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+
+        {/* Active */}
+        <Card className="card card-hover metric-card metric-card--success">
           <Group gap="xs">
-            <ThemeIcon variant="light" color="green" size="md">
+            <Box className="metric-card__icon metric-card__icon--success">
               <IconPlayerPlay size={18} />
-            </ThemeIcon>
+            </Box>
             <Stack gap={0}>
-              <Text size="xs" c="dimmed">Active</Text>
-              <Text size="xl" fw={700} c="green">{stats.active}</Text>
+              <Text size="sm" c="var(--text-tertiary)" fw={500}>Active</Text>
+              <Text size="2xl" fw={700} style={{ color: 'hsl(var(--success))' }}>{stats.active}</Text>
             </Stack>
           </Group>
         </Card>
-        <Card withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+
+        {/* Failed */}
+        <Card className="card card-hover metric-card metric-card--error">
           <Group gap="xs">
-            <ThemeIcon variant="light" color="red" size="md">
+            <Box className="metric-card__icon metric-card__icon--error">
               <IconPlayerStop size={18} />
-            </ThemeIcon>
+            </Box>
             <Stack gap={0}>
-              <Text size="xs" c="dimmed">Failed</Text>
-              <Text size="xl" fw={700} c="red">{stats.failed}</Text>
+              <Text size="sm" c="var(--text-tertiary)" fw={500}>Failed</Text>
+              <Text size="2xl" fw={700} style={{ color: 'hsl(var(--error))' }}>{stats.failed}</Text>
             </Stack>
           </Group>
         </Card>
-        <Card withBorder p="md" radius="md" bg="var(--mantine-color-dark-6)">
+
+        {/* Inactive */}
+        <Card className="card card-hover metric-card metric-card--info">
           <Group gap="xs">
-            <ThemeIcon variant="light" color="gray" size="md">
+            <Box className="metric-card__icon metric-card__icon--info">
               <IconSettings size={18} />
-            </ThemeIcon>
+            </Box>
             <Stack gap={0}>
-              <Text size="xs" c="dimmed">Inactive</Text>
-              <Text size="xl" fw={700} c="gray">{stats.inactive}</Text>
+              <Text size="sm" c="var(--text-tertiary)" fw={500}>Inactive</Text>
+              <Text size="2xl" fw={700} style={{ color: 'hsl(var(--info))' }}>{stats.inactive}</Text>
             </Stack>
           </Group>
         </Card>
       </SimpleGrid>
 
       {/* Filters */}
-      <Group gap="sm">
-        <TextInput
-          placeholder="Search services..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          leftSection={<IconSearch size={16} />}
-          style={{ width: 250 }}
-          variant="filled"
-          size="sm"
-        />
-        <Group gap="xs">
-          {['all', 'active', 'failed', 'inactive'].map((state) => (
-            <Badge
-              key={state}
-              variant={filterState === state ? 'filled' : 'light'}
-              color={state === 'all' ? 'blue' : state === 'active' ? 'green' : state === 'failed' ? 'red' : 'gray'}
-              style={{ cursor: 'pointer' }}
-              onClick={() => setFilterState(state)}
-            >
-              {state.charAt(0).toUpperCase() + state.slice(1)}
-            </Badge>
-          ))}
+      <Card className="card" style={{ marginBottom: 'var(--space-4)' }}>
+        <Group gap="sm">
+          <TextInput
+            placeholder="Search services..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            leftSection={<IconSearch size={16} />}
+            style={{ width: 250 }}
+            variant="filled"
+            size="sm"
+            styles={{
+              input: {
+                background: 'hsl(var(--bg-tertiary))',
+                border: '1px solid hsl(var(--border-subtle))',
+                color: 'hsl(var(--text-primary))',
+              },
+            }}
+          />
+          <Group gap="xs">
+            {['all', 'active', 'failed', 'inactive'].map((state) => (
+              <Badge
+                key={state}
+                variant={filterState === state ? 'filled' : 'light'}
+                color={state === 'all' ? 'blue' : state === 'active' ? 'green' : state === 'failed' ? 'red' : 'gray'}
+                size="sm"
+                onClick={() => setFilterState(state)}
+                style={{
+                  cursor: 'pointer',
+                  background: filterState === state
+                    ? `hsl(var(--${state === 'all' ? 'primary' : state === 'active' ? 'success' : state === 'failed' ? 'error' : 'bg-tertiary'}))`
+                    : state === 'active' && filterState !== state
+                      ? 'hsl(var(--success-subtle))'
+                      : state === 'failed' && filterState !== state
+                        ? 'hsl(var(--error-subtle))'
+                        : state === 'all' && filterState !== state
+                          ? 'hsl(var(--primary-subtle))'
+                          : 'hsl(var(--bg-tertiary))',
+                  color: filterState === state
+                    ? 'white'
+                    : state === 'active'
+                      ? 'hsl(var(--success))'
+                      : state === 'failed'
+                        ? 'hsl(var(--error))'
+                        : state === 'all'
+                          ? 'hsl(var(--primary))'
+                          : 'hsl(var(--text-tertiary))',
+                  border: `1px solid hsl(var(--${state === 'active' ? 'success' : state === 'failed' ? 'error' : state === 'all' ? 'primary' : 'border-default'}-border))`,
+                }}
+              >
+                {state.charAt(0).toUpperCase() + state.slice(1)}
+              </Badge>
+            ))}
+          </Group>
         </Group>
-      </Group>
+      </Card>
 
       {/* Services Table */}
-      <Paper withBorder radius="md" bg="var(--mantine-color-dark-6)" style={{ flex: 1, overflow: 'hidden' }}>
+      <Card className="card" style={{ flex: 1, overflow: 'hidden', minHeight: 400 }}>
         <ScrollArea.Autosize style={{ height: '100%' }}>
           <Table verticalSpacing="sm" highlightOnHover>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Service Name</Table.Th>
-                <Table.Th>State</Table.Th>
-                <Table.Th>Sub State</Table.Th>
-                <Table.Th>Description</Table.Th>
-                <Table.Th>Actions</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Service Name</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>State</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Sub State</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Description</Table.Th>
+                <Table.Th style={{ color: 'hsl(var(--text-secondary))', fontSize: 'var(--text-sm)', fontWeight: 600 }}>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -233,8 +308,8 @@ export default function ServicesManager() {
                   <Table.Td colSpan={5}>
                     <Center py="xl">
                       <Stack align="center" gap="md">
-                        <Loader size="lg" />
-                        <Text c="dimmed">Loading services...</Text>
+                        <Loader size="lg" color="hsl(var(--primary))" />
+                        <Text c="var(--text-tertiary">Loading services...</Text>
                       </Stack>
                     </Center>
                   </Table.Td>
@@ -243,7 +318,7 @@ export default function ServicesManager() {
                 <Table.Tr>
                   <Table.Td colSpan={5}>
                     <Center py="xl">
-                      <Text c="dimmed">
+                      <Text c="var(--text-tertiary)">
                         {searchTerm || filterState !== 'all' ? 'No matching services found' : 'No services found'}
                       </Text>
                     </Center>
@@ -253,18 +328,44 @@ export default function ServicesManager() {
                 filteredServices.map((service) => (
                   <Table.Tr key={service.name}>
                     <Table.Td>
-                      <Text fw={500} style={{ fontFamily: 'monospace' }}>{service.name}</Text>
+                      <Text fw={500} style={{ fontFamily: 'monospace', color: 'hsl(var(--text-primary))' }}>{service.name}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Badge color={getStateColor(service.state)} variant="light">
+                      <Badge
+                        color={getStateColor(service.state)}
+                        variant="light"
+                        size="sm"
+                        style={{
+                          background: service.state.toLowerCase() === 'active'
+                            ? 'hsl(var(--success-subtle))'
+                            : service.state.toLowerCase() === 'failed'
+                              ? 'hsl(var(--error-subtle))'
+                              : 'hsl(var(--bg-tertiary))',
+                          color: service.state.toLowerCase() === 'active'
+                            ? 'hsl(var(--success))'
+                            : service.state.toLowerCase() === 'failed'
+                              ? 'hsl(var(--error))'
+                              : 'hsl(var(--text-secondary))',
+                          border: `1px solid hsl(var(--${service.state.toLowerCase() === 'active' ? 'success' : service.state.toLowerCase() === 'failed' ? 'error' : 'border-default'}-border))`,
+                        }}
+                      >
                         {service.state}
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm" c="dimmed">{service.sub_state}</Text>
+                      <Text size="sm" c="var(--text-tertiary)">{service.sub_state}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm" c="dimmed" style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Text
+                        size="sm"
+                        c="var(--text-secondary)"
+                        style={{
+                          maxWidth: 300,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {service.description}
                       </Text>
                     </Table.Td>
@@ -272,8 +373,10 @@ export default function ServicesManager() {
                       <Group gap="xs">
                         {service.state.toLowerCase() === 'active' ? (
                           <ActionIcon
-                            color="red"
-                            variant="light"
+                            style={{
+                              background: 'hsl(var(--error-subtle))',
+                              color: 'hsl(var(--error))',
+                            }}
                             size="sm"
                             onClick={() => handleServiceAction('stop', service.name)}
                             title="Stop"
@@ -282,8 +385,10 @@ export default function ServicesManager() {
                           </ActionIcon>
                         ) : (
                           <ActionIcon
-                            color="green"
-                            variant="light"
+                            style={{
+                              background: 'hsl(var(--success-subtle))',
+                              color: 'hsl(var(--success))',
+                            }}
                             size="sm"
                             onClick={() => handleServiceAction('start', service.name)}
                             title="Start"
@@ -292,8 +397,10 @@ export default function ServicesManager() {
                           </ActionIcon>
                         )}
                         <ActionIcon
-                          color="blue"
-                          variant="light"
+                          style={{
+                            background: 'hsl(var(--primary-subtle))',
+                            color: 'hsl(var(--primary))',
+                          }}
                           size="sm"
                           onClick={() => handleServiceAction('restart', service.name)}
                           title="Restart"
@@ -301,8 +408,10 @@ export default function ServicesManager() {
                           <IconReload size={16} />
                         </ActionIcon>
                         <ActionIcon
-                          color="gray"
-                          variant="light"
+                          style={{
+                            background: 'hsl(var(--bg-tertiary))',
+                            color: 'hsl(var(--text-secondary))',
+                          }}
                           size="sm"
                           onClick={() => fetchServiceLogs(service)}
                           title="View Logs"
@@ -317,7 +426,7 @@ export default function ServicesManager() {
             </Table.Tbody>
           </Table>
         </ScrollArea.Autosize>
-      </Paper>
+      </Card>
 
       {/* Logs Modal */}
       <Modal
@@ -325,51 +434,85 @@ export default function ServicesManager() {
         onClose={() => setShowLogsModal(false)}
         title={
           <Group gap="sm">
-            <IconFileText size={20} />
-            <Text fw={600}>Logs: {selectedService?.name}</Text>
+            <Box
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-md)',
+                background: 'hsl(var(--primary-subtle))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'hsl(var(--primary))',
+              }}
+            >
+              <IconFileText size={16} />
+            </Box>
+            <Text fw={600} style={{ color: 'hsl(var(--text-primary))' }}>Logs: {selectedService?.name}</Text>
           </Group>
         }
         size="xl"
+        centered
+        styles={{
+          content: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+            border: '1px solid hsl(var(--border-default))',
+          },
+          header: {
+            borderBottom: '1px solid hsl(var(--border-subtle))',
+          },
+          body: {
+            backgroundColor: 'hsl(var(--bg-primary))',
+          },
+        }}
       >
         <Stack gap="md">
           <Group justify="space-between">
-            <Text size="sm" c="dimmed">Last 200 lines</Text>
+            <Text size="sm" c="var(--text-tertiary)">Last 200 lines</Text>
             <Button
               size="compact-sm"
-              variant="outline"
-              leftSection={<IconRefresh size={16} />}
+              variant="subtle"
               onClick={() => selectedService && fetchServiceLogs(selectedService)}
               loading={logsLoading}
+              leftSection={<IconRefresh size={16} />}
+              style={{
+                background: 'hsl(var(--bg-tertiary))',
+                color: 'hsl(var(--text-primary))',
+                border: '1px solid hsl(var(--border-default))',
+              }}
             >
               Refresh
             </Button>
           </Group>
-          <Divider />
+          <Divider style={{ borderColor: 'hsl(var(--border-subtle))' }} />
           <Box
             style={{
               maxHeight: 500,
               overflow: 'auto',
-              fontFamily: 'monospace',
-              fontSize: 12,
-              backgroundColor: 'var(--mantine-color-dark-8)',
-              padding: 'var(--mantine-spacing-md)',
-              borderRadius: 'var(--mantine-radius-md)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              backgroundColor: 'hsl(var(--bg-tertiary))',
+              padding: 'var(--space-4)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid hsl(var(--border-subtle))',
             }}
           >
             {logsLoading ? (
               <Center py="xl">
-                <Loader size="sm" />
+                <Loader size="sm" color="hsl(var(--primary))" />
               </Center>
             ) : serviceLogs ? (
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: 'hsl(var(--text-secondary))' }}>
                 {serviceLogs}
               </pre>
             ) : (
-              <Text c="dimmed" ta="center">No logs available</Text>
+              <Text c="var(--text-tertiary)" ta="center">No logs available</Text>
             )}
           </Box>
         </Stack>
       </Modal>
-    </Stack>
+    </div>
   );
-}
+});
+
+export default ServicesManager;
