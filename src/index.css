@@ -16,6 +16,7 @@
 @import './styles/components/input.css';
 @import './styles/components/navigation.css';
 @import './styles/components/topbar.css';
+@import './styles/components/page.css';
 
 /* Tailwind directives */
 @tailwind base;

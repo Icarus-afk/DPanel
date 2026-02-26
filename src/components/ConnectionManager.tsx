@@ -17,8 +17,9 @@ import {
   Stack,
   Divider,
   Badge,
-  ActionIcon,
   Tooltip,
+  Card,
+  Loader,
 } from '@mantine/core';
 import {
   IconPlugConnected,
@@ -34,6 +35,7 @@ import {
   IconCheck,
   IconWifi,
 } from '@tabler/icons-react';
+import logo from '../assets/logo.png';
 
 const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -248,36 +250,73 @@ export default function ConnectionManager() {
   };
 
   return (
-    <Box className="min-h-screen bg-neutral-950">
-      <div className="max-w-2xl mx-auto px-4 py-20">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-neutral-900 border border-neutral-800 mb-5">
-            <IconWifi size={32} className="text-emerald-400" />
-          </div>
-          <Title order={2} className="text-2xl font-semibold text-white mb-2">
-            SSH Connection
+    <Box
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 'var(--space-8)',
+        background: 'hsl(var(--bg-primary))',
+      }}
+    >
+      <div style={{ maxWidth: '1000px', width: '100%', margin: '0 auto' }}>
+        {/* Header with Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-10)' }}>
+          <Box
+            style={{
+              width: 100,
+              height: 100,
+              borderRadius: 'var(--radius-2xl)',
+              background: 'hsl(var(--bg-elevated))',
+              border: '2px solid hsl(var(--border-default))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto var(--space-4)',
+              overflow: 'hidden',
+            }}
+          >
+            <img src={logo} alt="DPanel" style={{ width: 70, height: 70, objectFit: 'contain' }} />
+          </Box>
+          <Title order={2} style={{ color: 'hsl(var(--text-primary))', fontSize: 'var(--text-3xl)', fontWeight: 800, marginBottom: 'var(--space-2)', letterSpacing: '-1px' }}>
+            DPanel
           </Title>
-          <Text size="sm" className="text-neutral-500 mt-3">
-            Connect to your remote servers securely via SSH
+          <Text size="lg" style={{ color: 'hsl(var(--text-secondary))', fontWeight: 500 }}>
+            Server Management Dashboard
+          </Text>
+          <Text size="sm" style={{ color: 'hsl(var(--text-tertiary))', marginTop: 'var(--space-2)' }}>
+            Connect to your servers securely via SSH
           </Text>
         </div>
 
         {/* Saved Servers Section */}
         {savedProfiles.length > 0 && !showForm && (
-          <Paper
-            withBorder
-            p="lg"
-            radius="lg"
-            className="bg-neutral-900 border-neutral-800"
-          >
+          <Card className="card card-elevated">
             <Group justify="space-between" mb="md">
-              <Title order={4} className="text-base font-medium text-white">
-                Saved Servers
-              </Title>
+              <Group gap="sm">
+                <Box
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 'var(--radius-md)',
+                    background: 'hsl(var(--primary-subtle))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'hsl(var(--primary))',
+                  }}
+                >
+                  <IconServer2 size={18} />
+                </Box>
+                <Stack gap={0}>
+                  <Text fw={600} size="sm" style={{ color: 'hsl(var(--text-primary))' }}>Saved Servers</Text>
+                  <Text size="xs" c="var(--text-tertiary)">{savedProfiles.length} {savedProfiles.length === 1 ? 'server' : 'servers'} configured</Text>
+                </Stack>
+              </Group>
               <Button
-                variant="outline"
-                size="sm"
+                variant="subtle"
+                size="compact-sm"
                 onClick={() => {
                   setEditingProfile(null);
                   setFormData({
@@ -293,7 +332,10 @@ export default function ConnectionManager() {
                   setShowForm(true);
                 }}
                 leftSection={<IconPlus size={16} />}
-                className="bg-transparent border-neutral-700 text-neutral-300 hover:bg-neutral-800 hover:border-neutral-600 transition-all text-sm"
+                style={{
+                  background: 'hsl(var(--primary))',
+                  color: 'white',
+                }}
               >
                 Add Server
               </Button>
@@ -301,107 +343,187 @@ export default function ConnectionManager() {
 
             <Stack gap="xs">
               {savedProfiles.map((profile) => (
-                <Paper
+                <Box
                   key={profile.id}
-                  withBorder
-                  p="md"
-                  radius="md"
-                  className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-all group"
+                  className="card card-hover"
+                  style={{
+                    background: 'hsl(var(--bg-tertiary))',
+                    border: '1px solid hsl(var(--border-subtle))',
+                    transition: 'all var(--duration-fast) var(--easing-default)',
+                  }}
                 >
                   <Group justify="space-between">
                     <Group gap="md">
-                      <div className="w-10 h-10 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center">
-                        <IconServer2 size={20} className="text-neutral-400" />
-                      </div>
-                      <div>
+                      <Box
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 'var(--radius-lg)',
+                          background: 'hsl(var(--bg-elevated))',
+                          border: '1px solid hsl(var(--border-default))',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <IconServer2 size={24} style={{ color: 'hsl(var(--text-secondary))' }} />
+                      </Box>
+                      <Stack gap={1}>
                         <Group gap="xs" mb={1}>
-                          <Text fw={500} className="text-white text-sm">
+                          <Text fw={600} style={{ color: 'hsl(var(--text-primary))', fontSize: 'var(--text-sm)' }}>
                             {profile.name}
                           </Text>
                           {profile.connect_on_startup && (
                             <Badge
                               size="sm"
-                              className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-xs"
+                              variant="light"
+                              style={{
+                                background: 'hsl(var(--warning-subtle))',
+                                color: 'hsl(var(--warning))',
+                                border: '1px solid hsl(var(--warning-border))',
+                              }}
                             >
-                              Auto
+                              Auto-connect
                             </Badge>
                           )}
                         </Group>
-                        <Text size="xs" className="text-neutral-500">
+                        <Text size="xs" c="var(--text-tertiary)">
                           {profile.username}@{profile.host}:{profile.port}
                         </Text>
-                      </div>
+                        <Text size="xs" c="var(--text-tertiary)">
+                          Last connected: {formatLastConnected(profile.last_connected)}
+                        </Text>
+                      </Stack>
                     </Group>
 
                     <Group gap="xs">
                       <Tooltip label="Quick Connect">
-                        <ActionIcon
-                          variant="filled"
-                          size="md"
-                          radius="md"
+                        <Box
                           onClick={() => handleQuickConnect(profile)}
-                          loading={isConnecting(profile.id)}
-                          className="bg-emerald-600 hover:bg-emerald-500 transition-all"
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 'var(--radius-md)',
+                            background: 'hsl(var(--success))',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: isConnecting(profile.id) ? 'not-allowed' : 'pointer',
+                            opacity: isConnecting(profile.id) ? 0.7 : 1,
+                            transition: 'all var(--duration-fast) var(--easing-default)',
+                            boxShadow: 'var(--shadow-glow-success)',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isConnecting(profile.id)) {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                          }}
                         >
-                          <IconCheck size={18} />
-                        </ActionIcon>
+                          {isConnecting(profile.id) ? <Loader size={18} /> : <IconCheck size={20} />}
+                        </Box>
                       </Tooltip>
 
-                      <Tooltip
-                        label={
-                          profile.connect_on_startup ? 'Disable auto-connect' : 'Enable auto-connect'
-                        }
-                      >
-                        <ActionIcon
-                          variant="subtle"
-                          size="md"
-                          radius="md"
-                          onClick={() =>
-                            handleToggleConnectOnStartup(profile.id, profile.connect_on_startup)
-                          }
-                          className={
-                            profile.connect_on_startup
-                              ? 'text-yellow-500 hover:bg-yellow-500/10'
-                              : 'text-neutral-600 hover:bg-neutral-800'
-                          }
+                      <Tooltip label={profile.connect_on_startup ? 'Disable auto-connect' : 'Enable auto-connect'}>
+                        <Box
+                          onClick={() => handleToggleConnectOnStartup(profile.id, profile.connect_on_startup)}
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 'var(--radius-md)',
+                            background: profile.connect_on_startup ? 'hsl(var(--warning-subtle))' : 'hsl(var(--bg-tertiary))',
+                            color: profile.connect_on_startup ? 'hsl(var(--warning))' : 'hsl(var(--text-tertiary))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            border: `1px solid ${profile.connect_on_startup ? 'hsl(var(--warning-border))' : 'hsl(var(--border-subtle))'}`,
+                            transition: 'all var(--duration-fast) var(--easing-default)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = profile.connect_on_startup ? 'hsl(var(--warning))' : 'hsl(var(--bg-elevated))';
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = profile.connect_on_startup ? 'hsl(var(--warning-subtle))' : 'hsl(var(--bg-tertiary))';
+                            e.currentTarget.style.color = profile.connect_on_startup ? 'hsl(var(--warning))' : 'hsl(var(--text-tertiary))';
+                          }}
                         >
-                          {profile.connect_on_startup ? (
-                            <IconStar size={16} />
-                          ) : (
-                            <IconStarOff size={16} />
-                          )}
-                        </ActionIcon>
+                          {profile.connect_on_startup ? <IconStar size={18} /> : <IconStarOff size={18} />}
+                        </Box>
                       </Tooltip>
 
                       <Tooltip label="Edit">
-                        <ActionIcon
-                          variant="subtle"
-                          size="md"
-                          radius="md"
+                        <Box
                           onClick={() => handleEditProfile(profile)}
-                          className="text-neutral-600 hover:bg-blue-500/10 hover:text-blue-500"
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 'var(--radius-md)',
+                            background: 'hsl(var(--bg-tertiary))',
+                            color: 'hsl(var(--text-secondary))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            border: '1px solid hsl(var(--border-subtle))',
+                            transition: 'all var(--duration-fast) var(--easing-default)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'hsl(var(--primary-subtle))';
+                            e.currentTarget.style.borderColor = 'hsl(var(--primary-border))';
+                            e.currentTarget.style.color = 'hsl(var(--primary))';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'hsl(var(--bg-tertiary))';
+                            e.currentTarget.style.borderColor = 'hsl(var(--border-subtle))';
+                            e.currentTarget.style.color = 'hsl(var(--text-secondary))';
+                          }}
                         >
-                          <IconEdit size={16} />
-                        </ActionIcon>
+                          <IconEdit size={18} />
+                        </Box>
                       </Tooltip>
 
                       <Tooltip label="Delete">
-                        <ActionIcon
-                          variant="subtle"
-                          size="md"
-                          radius="md"
+                        <Box
                           onClick={() => handleDeleteProfile(profile.id, profile.name)}
-                          className="text-neutral-600 hover:bg-red-500/10 hover:text-red-500"
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 'var(--radius-md)',
+                            background: 'hsl(var(--bg-tertiary))',
+                            color: 'hsl(var(--text-secondary))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            border: '1px solid hsl(var(--border-subtle))',
+                            transition: 'all var(--duration-fast) var(--easing-default)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'hsl(var(--error-subtle))';
+                            e.currentTarget.style.borderColor = 'hsl(var(--error-border))';
+                            e.currentTarget.style.color = 'hsl(var(--error))';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'hsl(var(--bg-tertiary))';
+                            e.currentTarget.style.borderColor = 'hsl(var(--border-subtle))';
+                            e.currentTarget.style.color = 'hsl(var(--text-secondary))';
+                          }}
                         >
-                          <IconTrash size={16} />
-                        </ActionIcon>
+                          <IconTrash size={18} />
+                        </Box>
                       </Tooltip>
                     </Group>
                   </Group>
-                </Paper>
+                </Box>
               ))}
             </Stack>
-          </Paper>
+          </Card>
         )}
 
         {/* Connection Form */}

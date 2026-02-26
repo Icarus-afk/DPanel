@@ -1,0 +1,63 @@
+/**
+ * Page Layout Utilities
+ * Common page container and layout styles
+ */
+
+/* ===== PAGE CONTAINER ===== */
+
+.page-container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--space-6);
+  animation: fadeInUp 0.3s var(--easing-out);
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s var(--easing-out);
+}
+
+/* ===== MAIN CONTENT AREA ===== */
+
+.main-content {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-6);
+  margin-left: var(--sidebar-width-collapsed);
+  margin-top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+}
+
+/* ===== LAYOUT HELPERS ===== */
+
+.layout-fixed {
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.layout-fixed__content {
+  flex: 1;
+  margin-left: var(--sidebar-width-collapsed);
+  margin-top: var(--header-height);
+  overflow: auto;
+  height: calc(100vh - var(--header-height));
+  transition: margin-left var(--duration-slow) var(--easing-smooth);
+}
+
+/* Adjust content margin when sidebar expands (handled by nav-rail width change) */
+.nav-rail:hover ~ .layout-fixed__content {
+  margin-left: var(--sidebar-width-expanded);
+}

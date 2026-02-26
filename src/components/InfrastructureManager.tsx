@@ -35,7 +35,7 @@ export default function InfrastructureManager() {
       </Box>
 
       {/* Graph Container */}
-      <Card className="card" style={{ flex: 1, overflow: 'hidden', position: 'relative', minHeight: '600px' }}>
+      <Card className="card" style={{ height: 'calc(100vh - 280px)', overflow: 'hidden', position: 'relative' }}>
         <InfrastructureGraphView />
       </Card>
     </div>

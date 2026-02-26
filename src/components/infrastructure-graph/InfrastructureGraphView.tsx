@@ -146,8 +146,11 @@ export function InfrastructureGraphView() {
 
   if (isLoading) {
     return (
-      <Center style={{ height: '100%', width: '100%' }}>
-        <Loader size="lg" />
+      <Center style={{ height: '100%', width: '100%', minHeight: '500px' }}>
+        <Stack align="center" gap="md">
+          <Loader size="lg" color="hsl(var(--primary))" />
+          <Text c="var(--text-tertiary)">Loading infrastructure graph...</Text>
+        </Stack>
       </Center>
     );
   }
@@ -304,36 +307,40 @@ export function InfrastructureGraphView() {
         </Box>
       </Box>
 
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypes}
-        fitView
-        snapToGrid
-        snapGrid={[15, 15]}
-        minZoom={0.2}
-        maxZoom={2}
-        style={{
-          background: '#0a0a0a',
-        }}
-      >
-        <Background
-          color="#1a1a1a"
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-        />
-        <Controls
+      <Box style={{ flex: 1, width: '100%', height: '100%' }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          fitView
+          snapToGrid
+          snapGrid={[15, 15]}
+          minZoom={0.2}
+          maxZoom={2}
           style={{
-            background: '#1a1a1a',
-            border: '1px solid #2a2a2a',
-            borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+            background: '#0a0a0a',
+            height: '100%',
+            width: '100%',
           }}
-        />
-      </ReactFlow>
+        >
+          <Background
+            color="#1a1a1a"
+            variant={BackgroundVariant.Dots}
+            gap={20}
+            size={1}
+          />
+          <Controls
+            style={{
+              background: '#1a1a1a',
+              border: '1px solid #2a2a2a',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+            }}
+          />
+        </ReactFlow>
+      </Box>
 
       {nodes.length === 0 && !isLoading && (
         <Box

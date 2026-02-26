@@ -537,7 +537,7 @@ export default function LogViewer() {
 
         {/* Right - Log Output */}
         <Grid.Col span={{ base: 12, lg: 9 }}>
-          <Card className="card" style={{ minHeight: 'calc(100vh - 280px)', display: 'flex', flexDirection: 'column' }}>
+          <Card className="card" style={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Toolbar */}
             <Group justify="space-between" mb="md">
               <Group gap="xs">
@@ -642,7 +642,7 @@ export default function LogViewer() {
             <Divider mb="md" style={{ borderColor: 'hsl(var(--border-subtle))' }} />
 
             {/* Log Content */}
-            <Box style={{ flex: 1, overflow: 'hidden' }}>
+            <Box style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
               {loading && logs.length === 0 ? (
                 <Center h="100%">
                   <Stack align="center" gap="md">

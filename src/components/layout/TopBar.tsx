@@ -80,7 +80,7 @@ export function TopBar({ onDisconnect }: TopBarProps) {
 
       {/* Right Section - Actions */}
       <Group gap="sm">
-        {/* Notifications */}
+        {/* Notifications - Commented out for now
         <ActionIcon
           size="lg"
           variant="light"
@@ -97,7 +97,7 @@ export function TopBar({ onDisconnect }: TopBarProps) {
           </Box>
         </ActionIcon>
 
-        {/* Settings */}
+        Settings
         <ActionIcon
           size="lg"
           variant="light"
@@ -110,6 +110,7 @@ export function TopBar({ onDisconnect }: TopBarProps) {
         >
           <Icons.Settings size={20} />
         </ActionIcon>
+        */}
 
         {/* Disconnect Button */}
         {isConnected && (

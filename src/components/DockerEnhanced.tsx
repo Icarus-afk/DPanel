@@ -127,11 +127,12 @@ const DockerEnhanced = memo(function DockerEnhanced() {
 
   useEffect(() => {
     if (isConnected) {
-      fetchContainers();
-      
-      // Start polling interval
+      // Fetch all data on mount when Docker tab is first visited
+      fetchAllData();
+
+      // Start polling interval for containers only
       let interval = setInterval(fetchContainers, 15000);
-      
+
       // Visibility API - pause fetching when tab is hidden
       const handleVisibilityChange = () => {
         if (document.hidden) {
@@ -144,13 +145,13 @@ const DockerEnhanced = memo(function DockerEnhanced() {
       };
 
       document.addEventListener('visibilitychange', handleVisibilityChange);
-      
+
       return () => {
         clearInterval(interval);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
     }
-  }, [isConnected, fetchContainers]);
+  }, [isConnected]);
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
@@ -399,10 +400,10 @@ const DockerEnhanced = memo(function DockerEnhanced() {
                           {container.cpu_percent.toFixed(1)}%
                         </Text>
                         <Progress
-                          value={container.cpu_percent}
+                          value={container.cpu_percent || 0}
                           h={6}
                           radius="full"
-                          color={getMetricColor(container.cpu_percent, 50, 80)}
+                          color={getMetricColor(container.cpu_percent || 0, 50, 80)}
                           style={{ background: 'hsl(var(--bg-tertiary))' }}
                         />
                       </Stack>
@@ -415,10 +416,10 @@ const DockerEnhanced = memo(function DockerEnhanced() {
                           {formatBytes(container.memory_usage)}
                         </Text>
                         <Progress
-                          value={(container.memory_usage / container.memory_limit) * 100}
+                          value={container.memory_limit > 0 ? (container.memory_usage / container.memory_limit) * 100 : 0}
                           h={6}
                           radius="full"
-                          color={getMetricColor((container.memory_usage / container.memory_limit) * 100, 60, 80)}
+                          color={getMetricColor(container.memory_limit > 0 ? (container.memory_usage / container.memory_limit) * 100 : 0, 60, 80)}
                           style={{ background: 'hsl(var(--bg-tertiary))' }}
                         />
                       </Stack>
@@ -928,7 +929,19 @@ const DockerEnhanced = memo(function DockerEnhanced() {
                 }}
               >
                 <Text size="xs" c="var(--text-tertiary)">Image</Text>
-                <Text fw={600} size="sm" style={{ color: 'hsl(var(--text-primary))', fontFamily: 'var(--font-mono)' }}>
+                <Text
+                  fw={600}
+                  size="sm"
+                  style={{
+                    color: 'hsl(var(--text-primary))',
+                    fontFamily: 'var(--font-mono)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '100%',
+                  }}
+                  title={selectedContainer.image.replace(/@sha256:[a-f0-9]+$/, '').replace(/^[^/]+\//, '')}
+                >
                   {selectedContainer.image.replace(/@sha256:[a-f0-9]+$/, '').replace(/^[^/]+\//, '')}
                 </Text>
               </Paper>

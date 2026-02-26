@@ -46,60 +46,56 @@ function AppContent() {
   }
 
   return (
-    <Box
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        overflow: 'hidden',
-        background: '#0a0a0a',
-      }}
-    >
-      {/* Modern Navigation Rail */}
+    <Box className="layout-fixed">
+      {/* Modern Navigation Rail - Fixed position */}
       <NavigationRail currentView={currentView} onViewChange={handleViewChange} />
 
-      {/* Main Content Area */}
-      <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Modern Top Bar */}
-        <TopBar onDisconnect={handleDisconnect} />
+      {/* Modern Top Bar - Fixed position */}
+      <TopBar onDisconnect={handleDisconnect} />
 
-        {/* Page Content */}
-        <Box
-          style={{
-            flex: 1,
-            overflow: 'auto',
-            padding: '24px',
-          }}
-        >
-          {!isConnected ? (
-            <ConnectionManager />
-          ) : (
-            <Suspense
-              fallback={
-                <Box
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    height: '100%',
-                  }}
-                >
-                  <div className="spinner" />
-                </Box>
-              }
-            >
-              {currentView === 'dashboard' && <Dashboard />}
-              {currentView === 'docker' && <DockerEnhanced />}
-              {currentView === 'services' && <ServicesManager />}
-              {currentView === 'nginx' && <NginxManager />}
-              {currentView === 'cron' && <CronManager />}
-              {currentView === 'logs' && <LogViewer />}
-              {currentView === 'commands' && <QuickCommands />}
-              {currentView === 'firewall' && <FirewallManager />}
-              {currentView === 'users' && <UserManager />}
-              {currentView === 'infrastructure' && <InfrastructureManager />}
-            </Suspense>
-          )}
-        </Box>
+      {/* Main Content Area - Scrollable */}
+      <Box
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          padding: 'var(--space-6)',
+          marginLeft: 'var(--sidebar-width-collapsed)',
+          marginTop: 'var(--header-height)',
+          height: 'calc(100vh - var(--header-height))',
+          width: 'calc(100vw - var(--sidebar-width-collapsed))',
+          minHeight: 0,
+          transition: 'margin-left var(--duration-slow) var(--easing-smooth)',
+        }}
+      >
+        {!isConnected ? (
+          <ConnectionManager />
+        ) : (
+          <Suspense
+            fallback={
+              <Box
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '100%',
+                }}
+              >
+                <div className="spinner" />
+              </Box>
+            }
+          >
+            {currentView === 'dashboard' && <Dashboard />}
+            {currentView === 'docker' && <DockerEnhanced />}
+            {currentView === 'services' && <ServicesManager />}
+            {currentView === 'nginx' && <NginxManager />}
+            {currentView === 'cron' && <CronManager />}
+            {currentView === 'logs' && <LogViewer />}
+            {currentView === 'commands' && <QuickCommands />}
+            {currentView === 'firewall' && <FirewallManager />}
+            {currentView === 'users' && <UserManager />}
+            {currentView === 'infrastructure' && <InfrastructureManager />}
+          </Suspense>
+        )}
       </Box>
     </Box>
   );
