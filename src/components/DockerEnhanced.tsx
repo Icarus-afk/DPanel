@@ -128,8 +128,27 @@ const DockerEnhanced = memo(function DockerEnhanced() {
   useEffect(() => {
     if (isConnected) {
       fetchContainers();
-      const interval = setInterval(fetchContainers, 15000);
-      return () => clearInterval(interval);
+      
+      // Start polling interval
+      let interval = setInterval(fetchContainers, 15000);
+      
+      // Visibility API - pause fetching when tab is hidden
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          clearInterval(interval);
+        } else {
+          // Tab is visible again - fetch immediately and restart interval
+          fetchContainers();
+          interval = setInterval(fetchContainers, 15000);
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
   }, [isConnected, fetchContainers]);
 

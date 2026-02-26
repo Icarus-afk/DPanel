@@ -1,8 +1,8 @@
-use crate::compose_discovery::{ComposeDiscoveryCache, scan_compose_files, refresh_compose_scan};
+use crate::compose_discovery::{refresh_compose_scan, scan_compose_files, ComposeDiscoveryCache};
 use crate::ssh::SshClient;
 use crate::types::*;
 use serde_json::Value as JsonValue;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use tauri::State;
 use tauri_plugin_store::StoreExt;
@@ -10,19 +10,19 @@ use tokio::sync::Mutex;
 
 const STORE_FILENAME: &str = "server_profiles.json";
 const PROFILES_KEY: &str = "server_profiles";
-const MAX_HISTORY_POINTS: usize = 10; // Optimized: reduced for better performance
+const MAX_HISTORY_POINTS: usize = 30; // Increased for smoother charts
+const COMMAND_TIMEOUT_SECS: u64 = 30; // Timeout for SSH commands
 
 fn profiles_from_json(value: Option<JsonValue>) -> HashMap<String, SavedServerProfile> {
     match value {
-        Some(JsonValue::Object(obj)) => {
-            obj.into_iter()
-                .filter_map(|(k, v)| {
-                    serde_json::from_value::<SavedServerProfile>(v)
-                        .ok()
-                        .map(|profile| (k, profile))
-                })
-                .collect()
-        }
+        Some(JsonValue::Object(obj)) => obj
+            .into_iter()
+            .filter_map(|(k, v)| {
+                serde_json::from_value::<SavedServerProfile>(v)
+                    .ok()
+                    .map(|profile| (k, profile))
+            })
+            .collect(),
         _ => HashMap::new(),
     }
 }
@@ -30,9 +30,7 @@ fn profiles_from_json(value: Option<JsonValue>) -> HashMap<String, SavedServerPr
 fn profiles_to_json(profiles: &HashMap<String, SavedServerProfile>) -> JsonValue {
     let obj: serde_json::Map<String, JsonValue> = profiles
         .iter()
-        .filter_map(|(k, v)| {
-            serde_json::to_value(v).ok().map(|value| (k.clone(), value))
-        })
+        .filter_map(|(k, v)| serde_json::to_value(v).ok().map(|value| (k.clone(), value)))
         .collect();
     JsonValue::Object(obj)
 }
@@ -40,9 +38,9 @@ fn profiles_to_json(profiles: &HashMap<String, SavedServerProfile>) -> JsonValue
 pub struct AppState {
     pub ssh_client: Mutex<Option<Arc<SshClient>>>,
     pub server_profiles: Mutex<HashMap<String, ServerProfile>>,
-    pub cpu_history: Mutex<Vec<f64>>,
-    pub memory_history: Mutex<Vec<f64>>,
-    pub network_history: Mutex<Vec<NetworkHistoryPoint>>,
+    pub cpu_history: Mutex<VecDeque<f64>>,
+    pub memory_history: Mutex<VecDeque<f64>>,
+    pub network_history: Mutex<VecDeque<NetworkHistoryPoint>>,
     pub last_network_stats: Mutex<Option<NetworkStats>>,
     pub compose_cache: Arc<ComposeDiscoveryCache>,
 }
@@ -52,9 +50,9 @@ impl Default for AppState {
         AppState {
             ssh_client: Mutex::new(None),
             server_profiles: Mutex::new(HashMap::new()),
-            cpu_history: Mutex::new(Vec::with_capacity(30)),
-            memory_history: Mutex::new(Vec::with_capacity(30)),
-            network_history: Mutex::new(Vec::with_capacity(30)),
+            cpu_history: Mutex::new(VecDeque::with_capacity(MAX_HISTORY_POINTS)),
+            memory_history: Mutex::new(VecDeque::with_capacity(MAX_HISTORY_POINTS)),
+            network_history: Mutex::new(VecDeque::with_capacity(MAX_HISTORY_POINTS)),
             last_network_stats: Mutex::new(None),
             compose_cache: Arc::new(ComposeDiscoveryCache::new()),
         }
@@ -110,7 +108,7 @@ pub async fn connect_to_server(
             let mut saved_profile: SavedServerProfile = SavedServerProfile::from(profile.clone());
             if let Ok(store) = app.store(STORE_FILENAME) {
                 let mut profiles_map = profiles_from_json(store.get(PROFILES_KEY));
-                
+
                 // Preserve existing metadata if profile already exists
                 if let Some(existing) = profiles_map.get(&profile.id) {
                     let mut updated = saved_profile;
@@ -118,19 +116,21 @@ pub async fn connect_to_server(
                     updated.connect_on_startup = existing.connect_on_startup;
                     saved_profile = updated;
                 }
-                
+
                 // Update last_connected timestamp
                 let mut final_profile = saved_profile;
                 final_profile.last_connected = Some(
                     std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap()
-                        .as_millis() as u64
+                        .as_millis() as u64,
                 );
-                
+
                 profiles_map.insert(profile.id.clone(), final_profile);
                 store.set(PROFILES_KEY, profiles_to_json(&profiles_map));
-                store.save().map_err(|e| format!("Failed to save profile: {}", e))?;
+                store
+                    .save()
+                    .map_err(|e| format!("Failed to save profile: {}", e))?;
             }
 
             let mut ssh_client = state.ssh_client.lock().await;
@@ -161,48 +161,71 @@ pub async fn get_system_metrics(state: State<'_, AppState>) -> Result<SystemMetr
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
-    // Execute independent commands in parallel using threads
-    let client_clone: Arc<SshClient> = Arc::clone(client);
-    let cpu_handle = std::thread::spawn(move || {
-        client_clone.execute_command("top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | cut -d'%' -f1")
-    });
-    
-    let client_clone: Arc<SshClient> = Arc::clone(client);
-    let mem_handle = std::thread::spawn(move || {
-        client_clone.execute_command("free -b | grep Mem | awk '{print $3,$2}'")
-    });
-    
-    let client_clone: Arc<SshClient> = Arc::clone(client);
-    let disk_handle = std::thread::spawn(move || {
-        client_clone.execute_command("df -B1 | tail -n +2 | awk '{print $6,$3,$2,$5}' | grep -E '^/'")
-    });
-    
-    let client_clone: Arc<SshClient> = Arc::clone(client);
-    let load_handle = std::thread::spawn(move || {
-        client_clone.execute_command("cat /proc/loadavg | awk '{print $1,$2,$3}'")
-    });
-    
-    let client_clone: Arc<SshClient> = Arc::clone(client);
-    let uptime_handle = std::thread::spawn(move || {
-        client_clone.execute_command("cat /proc/uptime | awk '{print int($1)}'")
-    });
-    
-    let client_clone: Arc<SshClient> = Arc::clone(client);
-    let proc_handle = std::thread::spawn(move || {
-        client_clone.execute_command("ps aux | wc -l")
-    });
+    // OPTIMIZATION: Execute all metrics in a SINGLE SSH command to reduce overhead
+    // This reduces 8+ SSH channel setups to just 1, dramatically improving performance
+    let combined_command = r#"
+        echo "===CPU===";
+        top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | cut -d'%' -f1;
+        echo "===MEM===";
+        free -b | grep Mem | awk '{print $3,$2}';
+        echo "===DISK===";
+        df -B1 | tail -n +2 | awk '{print $6,$3,$2,$5}' | grep -E '^/';
+        echo "===LOAD===";
+        cat /proc/loadavg | awk '{print $1,$2,$3}';
+        echo "===UPTIME===";
+        cat /proc/uptime | awk '{print int($1)}';
+        echo "===PROC===";
+        ps aux | wc -l;
+        echo "===NET===";
+        cat /proc/net/dev | grep -E '^\s*(eth|en|wl)' | head -n 1 | awk -F: '{print $2}' | awk '{print $1,$2,$9,$10}';
+        echo "===IFACE===";
+        ip route | grep default | awk '{print $5}' | head -n 1;
+        echo "===END===";
+    "#;
 
-    let cpu_output = cpu_handle.join().unwrap().map_err(|e| e.message)?;
-    let cpu_percent: f64 = cpu_output.trim().parse().unwrap_or(0.0);
+    let output = client
+        .execute_command(combined_command)
+        .map_err(|e| e.message)?;
 
-    let mem_output = mem_handle.join().unwrap().map_err(|e| e.message)?;
-    let mem_parts: Vec<&str> = mem_output.trim().split_whitespace().collect();
-    let memory_used: u64 = mem_parts.get(0).and_then(|s: &&str| s.parse().ok()).unwrap_or(0);
-    let memory_total: u64 = mem_parts.get(1).and_then(|s: &&str| s.parse().ok()).unwrap_or(0);
+    // Parse the combined output
+    let mut sections: HashMap<String, String> = HashMap::new();
+    let mut current_section: Option<String> = None;
+    let mut section_lines: Vec<String> = Vec::new();
 
-    let disk_output = disk_handle.join().unwrap().map_err(|e| e.message)?;
+    for line in output.lines() {
+        if line.starts_with("===") {
+            // Save previous section
+            if let Some(section_name) = current_section.take() {
+                sections.insert(section_name, section_lines.join("\n"));
+            }
+            // Start new section
+            current_section = Some(line.trim_matches('=').trim().to_string());
+            section_lines.clear();
+        } else {
+            section_lines.push(line.to_string());
+        }
+    }
+    // Save last section
+    if let Some(section_name) = current_section {
+        sections.insert(section_name, section_lines.join("\n"));
+    }
+
+    // Parse CPU
+    let cpu_percent: f64 = sections
+        .get("CPU")
+        .map(|s| s.trim().parse().unwrap_or(0.0))
+        .unwrap_or(0.0);
+
+    // Parse Memory
+    let mem_str = sections.get("MEM").map(|s| s.as_str()).unwrap_or("");
+    let mem_parts: Vec<&str> = mem_str.split_whitespace().collect();
+    let memory_used: u64 = mem_parts.get(0).and_then(|s| s.parse().ok()).unwrap_or(0);
+    let memory_total: u64 = mem_parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
+
+    // Parse Disk
     let mut disk_usage = Vec::new();
-    for line in disk_output.lines() {
+    let disk_str = sections.get("DISK").map(|s| s.as_str()).unwrap_or("");
+    for line in disk_str.lines() {
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 4 {
             let mount_point = parts[0].to_string();
@@ -219,11 +242,11 @@ pub async fn get_system_metrics(state: State<'_, AppState>) -> Result<SystemMetr
         }
     }
 
-    let load_output = load_handle.join().unwrap().map_err(|e| e.message)?;
-    let load_parts: Vec<f64> = load_output
-        .trim()
+    // Parse Load
+    let load_str = sections.get("LOAD").map(|s| s.as_str()).unwrap_or("");
+    let load_parts: Vec<f64> = load_str
         .split_whitespace()
-        .filter_map(|s: &str| s.parse().ok())
+        .filter_map(|s| s.parse().ok())
         .collect();
     let load_avg = [
         load_parts.get(0).copied().unwrap_or(0.0),
@@ -231,33 +254,31 @@ pub async fn get_system_metrics(state: State<'_, AppState>) -> Result<SystemMetr
         load_parts.get(2).copied().unwrap_or(0.0),
     ];
 
-    let uptime_output = uptime_handle.join().unwrap().map_err(|e| e.message)?;
-    let uptime: u64 = uptime_output.trim().parse().unwrap_or(0);
+    // Parse Uptime
+    let uptime: u64 = sections
+        .get("UPTIME")
+        .map(|s| s.trim().parse().unwrap_or(0))
+        .unwrap_or(0);
 
-    let proc_output = proc_handle.join().unwrap().map_err(|e| e.message)?;
-    let process_count: u32 = proc_output.trim().parse().unwrap_or(0);
+    // Parse Process count
+    let process_count: u32 = sections
+        .get("PROC")
+        .map(|s| s.trim().parse().unwrap_or(0))
+        .unwrap_or(0);
 
-    // Fetch network stats - use more robust parsing
-    let client_clone: Arc<SshClient> = Arc::clone(client);
-    let network_handle = std::thread::spawn(move || {
-        // Parse /proc/net/dev more reliably - get the primary interface
-        client_clone.execute_command("cat /proc/net/dev | grep -E '^\\s*(eth|en|wl)' | head -n 1 | awk -F: '{print $2}' | awk '{print $1,$2,$9,$10}'")
-    });
-
-    let network_output = network_handle.join().unwrap().map_err(|e| e.message)?;
-    let net_parts: Vec<&str> = network_output.trim().split_whitespace().collect();
+    // Parse Network
+    let net_str = sections.get("NET").map(|s| s.as_str()).unwrap_or("");
+    let net_parts: Vec<&str> = net_str.split_whitespace().collect();
     let bytes_recv: u64 = net_parts.get(0).and_then(|s| s.parse().ok()).unwrap_or(0);
     let packets_recv: u64 = net_parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
     let bytes_sent: u64 = net_parts.get(2).and_then(|s| s.parse().ok()).unwrap_or(0);
     let packets_sent: u64 = net_parts.get(3).and_then(|s| s.parse().ok()).unwrap_or(0);
 
-    // Get primary interface name
-    let client_clone: Arc<SshClient> = Arc::clone(client);
-    let iface_handle = std::thread::spawn(move || {
-        client_clone.execute_command("ip route | grep default | awk '{print $5}' | head -n 1")
-    });
-    let iface_output = iface_handle.join().unwrap().unwrap_or_else(|_| "eth0".to_string());
-    let interface = iface_output.trim().to_string();
+    // Parse Interface
+    let interface = sections
+        .get("IFACE")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|| "eth0".to_string());
 
     let network = NetworkStats {
         bytes_sent,
@@ -267,18 +288,18 @@ pub async fn get_system_metrics(state: State<'_, AppState>) -> Result<SystemMetr
         interface,
     };
 
-    // Update history
+    // Update history - use single lock scope for efficiency
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_millis() as u64;
 
-    // CPU History
+    // CPU History - O(1) operation with VecDeque
     {
         let mut cpu_hist = state.cpu_history.lock().await;
-        cpu_hist.push(cpu_percent);
+        cpu_hist.push_back(cpu_percent);
         if cpu_hist.len() > MAX_HISTORY_POINTS {
-            cpu_hist.remove(0);
+            cpu_hist.pop_front(); // O(1) instead of remove(0) which is O(n)
         }
     }
 
@@ -290,9 +311,9 @@ pub async fn get_system_metrics(state: State<'_, AppState>) -> Result<SystemMetr
             0.0
         };
         let mut mem_hist = state.memory_history.lock().await;
-        mem_hist.push(mem_percent);
+        mem_hist.push_back(mem_percent);
         if mem_hist.len() > MAX_HISTORY_POINTS {
-            mem_hist.remove(0);
+            mem_hist.pop_front();
         }
     }
 
@@ -318,16 +339,17 @@ pub async fn get_system_metrics(state: State<'_, AppState>) -> Result<SystemMetr
 
     {
         let mut net_hist = state.network_history.lock().await;
-        net_hist.push(network_history_point);
+        net_hist.push_back(network_history_point);
         if net_hist.len() > MAX_HISTORY_POINTS {
-            net_hist.remove(0);
+            net_hist.pop_front();
         }
     }
 
-    // Get history snapshots
-    let cpu_history = state.cpu_history.lock().await.clone();
-    let memory_history = state.memory_history.lock().await.clone();
-    let network_history = state.network_history.lock().await.clone();
+    // Get history snapshots - convert VecDeque to Vec
+    let cpu_history: Vec<f64> = state.cpu_history.lock().await.clone().into();
+    let memory_history: Vec<f64> = state.memory_history.lock().await.clone().into();
+    let network_history: Vec<NetworkHistoryPoint> =
+        state.network_history.lock().await.clone().into();
 
     Ok(SystemMetrics {
         cpu_percent,
@@ -345,26 +367,17 @@ pub async fn get_system_metrics(state: State<'_, AppState>) -> Result<SystemMetr
 }
 
 #[tauri::command]
-pub async fn get_docker_containers(state: State<'_, AppState>) -> Result<Vec<DockerContainer>, String> {
+pub async fn get_docker_containers(
+    state: State<'_, AppState>,
+) -> Result<Vec<DockerContainer>, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
-    // Execute both commands using threads
-    let client_clone: Arc<SshClient> = Arc::clone(client);
-    let ps_handle = std::thread::spawn(move || {
-        client_clone.execute_command(
-            "docker ps -a --format '{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}' --no-trunc",
-        )
-    });
-    
-    let client_clone: Arc<SshClient> = Arc::clone(client);
-    let stats_handle = std::thread::spawn(move || {
-        client_clone.execute_command(
-            "docker stats --no-stream --format '{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}'"
-        )
-    });
+    // Execute commands sequentially - more efficient than thread spawning with mutex contention
+    let ps_output = client.execute_command(
+        "docker ps -a --format '{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}' --no-trunc",
+    ).map_err(|e| e.message)?;
 
-    let ps_output = ps_handle.join().unwrap().map_err(|e| e.message)?;
     let mut containers = Vec::new();
     for line in ps_output.lines() {
         let parts: Vec<&str> = line.split('|').collect();
@@ -383,7 +396,11 @@ pub async fn get_docker_containers(state: State<'_, AppState>) -> Result<Vec<Doc
         }
     }
 
-    let stats_output = stats_handle.join().unwrap().map_err(|e| e.message)?;
+    // Fetch stats and merge with container list
+    let stats_output = client
+        .execute_command("docker stats --no-stream --format '{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}'")
+        .map_err(|e| e.message)?;
+
     for line in stats_output.lines() {
         let parts: Vec<&str> = line.split('|').collect();
         if parts.len() >= 3 {
@@ -403,7 +420,7 @@ pub async fn get_docker_containers(state: State<'_, AppState>) -> Result<Vec<Doc
 
 fn parse_memory(mem_str: &str) -> u64 {
     let mem_str = mem_str.trim().to_uppercase();
-    
+
     // Handle various memory formats: "1.5GiB", "1.5GB", "100MiB", "100MB", "100 MiB", "100 MB"
     if mem_str.contains("GIB") || mem_str.contains("GB") {
         let value_str = mem_str.replace("GIB", " ").replace("GB", " ");
@@ -467,8 +484,14 @@ pub async fn get_services(state: State<'_, AppState>) -> Result<Vec<ServiceInfo>
         if parts.len() >= 4 {
             services.push(ServiceInfo {
                 name: parts[0].to_string(),
-                state: parts.get(1).map(|s: &&str| s.to_string()).unwrap_or_default(),
-                sub_state: parts.get(2).map(|s: &&str| s.to_string()).unwrap_or_default(),
+                state: parts
+                    .get(1)
+                    .map(|s: &&str| s.to_string())
+                    .unwrap_or_default(),
+                sub_state: parts
+                    .get(2)
+                    .map(|s: &&str| s.to_string())
+                    .unwrap_or_default(),
                 description: parts[3..].join(" "),
             });
         }
@@ -500,18 +523,21 @@ pub async fn get_service_logs(
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
     let lines = lines.unwrap_or(100);
-    
+
     // Try journalctl first (for systemd services with journald)
-    let journalctl_cmd = format!("journalctl -u {} -n {} --no-pager 2>&1", service_name, lines);
+    let journalctl_cmd = format!(
+        "journalctl -u {} -n {} --no-pager 2>&1",
+        service_name, lines
+    );
     let journalctl_result = client.execute_command(&journalctl_cmd);
-    
+
     // If journalctl succeeds and returns content, use it
     if let Ok(output) = journalctl_result {
         if !output.is_empty() && !output.contains("No entries") && !output.contains("cannot open") {
             return Ok(output);
         }
     }
-    
+
     // Fallback: Try common log file locations
     let log_paths = vec![
         format!("/var/log/{}.log", service_name),
@@ -520,18 +546,24 @@ pub async fn get_service_logs(
         format!("/var/log/syslog"),
         format!("/var/log/messages"),
     ];
-    
+
     for log_path in log_paths {
-        let tail_cmd = format!("test -f {} && tail -n {} {} 2>&1", log_path, lines, log_path);
+        let tail_cmd = format!(
+            "test -f {} && tail -n {} {} 2>&1",
+            log_path, lines, log_path
+        );
         if let Ok(output) = client.execute_command(&tail_cmd) {
             if !output.is_empty() && !output.contains("No such file") {
                 return Ok(format!("(From file: {})\n{}", log_path, output));
             }
         }
     }
-    
+
     // Try to find service-specific log directory
-    let find_cmd = format!("find /var/log -name '*{}*' -type f 2>/dev/null | head -5", service_name);
+    let find_cmd = format!(
+        "find /var/log -name '*{}*' -type f 2>/dev/null | head -5",
+        service_name
+    );
     if let Ok(found_files) = client.execute_command(&find_cmd) {
         for file in found_files.lines() {
             if !file.is_empty() {
@@ -544,8 +576,11 @@ pub async fn get_service_logs(
             }
         }
     }
-    
-    Err(format!("No logs found for service '{}'. Service may not log to journal or standard log locations.", service_name))
+
+    Err(format!(
+        "No logs found for service '{}'. Service may not log to journal or standard log locations.",
+        service_name
+    ))
 }
 
 #[tauri::command]
@@ -572,7 +607,7 @@ pub async fn save_server_profile(
     let mut saved_profile: SavedServerProfile = SavedServerProfile::from(profile);
     if let Ok(store) = app.store(STORE_FILENAME) {
         let mut profiles_map = profiles_from_json(store.get(PROFILES_KEY));
-        
+
         // Preserve existing metadata if profile already exists
         if let Some(existing) = profiles_map.get(&saved_profile.id) {
             let mut updated = saved_profile;
@@ -581,10 +616,12 @@ pub async fn save_server_profile(
             updated.connect_on_startup = existing.connect_on_startup;
             saved_profile = updated;
         }
-        
+
         profiles_map.insert(saved_profile.id.clone(), saved_profile);
         store.set(PROFILES_KEY, profiles_to_json(&profiles_map));
-        store.save().map_err(|e| format!("Failed to save profile: {}", e))?;
+        store
+            .save()
+            .map_err(|e| format!("Failed to save profile: {}", e))?;
     }
     Ok(())
 }
@@ -602,10 +639,13 @@ pub async fn get_server_profiles(
             return Ok(profiles);
         }
     }
-    
+
     // Fallback to in-memory profiles
     let profiles = state.server_profiles.lock().await;
-    Ok(profiles.values().map(|p| SavedServerProfile::from(p.clone())).collect())
+    Ok(profiles
+        .values()
+        .map(|p| SavedServerProfile::from(p.clone()))
+        .collect())
 }
 
 #[tauri::command]
@@ -623,7 +663,9 @@ pub async fn delete_server_profile(
         let mut profiles_map = profiles_from_json(store.get(PROFILES_KEY));
         if profiles_map.remove(&profile_id).is_some() {
             store.set(PROFILES_KEY, profiles_to_json(&profiles_map));
-            store.save().map_err(|e| format!("Failed to delete profile: {}", e))?;
+            store
+                .save()
+                .map_err(|e| format!("Failed to delete profile: {}", e))?;
         }
     }
     Ok(())
@@ -642,7 +684,9 @@ pub async fn update_server_profile_metadata(
                 profile.connect_on_startup = value;
             }
             store.set(PROFILES_KEY, profiles_to_json(&profiles_map));
-            store.save().map_err(|e| format!("Failed to update profile: {}", e))?;
+            store
+                .save()
+                .map_err(|e| format!("Failed to update profile: {}", e))?;
             return Ok(());
         }
     }
@@ -669,7 +713,7 @@ pub async fn get_ufw_status(state: State<'_, AppState>) -> Result<UfwStatus, Str
 
     for line in lines {
         let line = line.trim();
-        
+
         if line.starts_with("Status:") {
             active = line.contains("active");
         } else if line.starts_with("Logging:") {
@@ -683,12 +727,20 @@ pub async fn get_ufw_status(state: State<'_, AppState>) -> Result<UfwStatus, Str
             if parts.len() >= 3 {
                 // Parse rule line: "22/tcp                     ALLOW       Anywhere"
                 let rule_str = parts[0].to_string();
-                let action = if parts.len() > 1 { parts[1].to_string() } else { "".to_string() };
-                let from = if parts.len() > 2 { parts[2..].join(" ") } else { "Anywhere".to_string() };
-                
+                let action = if parts.len() > 1 {
+                    parts[1].to_string()
+                } else {
+                    "".to_string()
+                };
+                let from = if parts.len() > 2 {
+                    parts[2..].join(" ")
+                } else {
+                    "Anywhere".to_string()
+                };
+
                 // Extract port if present
                 let port = rule_str.split('/').nth(1).map(|s| s.to_string());
-                
+
                 rules.push(UfwRule {
                     rule: rule_str,
                     to: "Anywhere".to_string(),
@@ -745,10 +797,7 @@ pub async fn get_ufw_stats(state: State<'_, AppState>) -> Result<UfwStats, Strin
 }
 
 #[tauri::command]
-pub async fn ufw_action(
-    action: String,
-    state: State<'_, AppState>,
-) -> Result<String, String> {
+pub async fn ufw_action(action: String, state: State<'_, AppState>) -> Result<String, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
@@ -776,31 +825,31 @@ pub async fn ufw_add_rule(
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
     let mut command = String::from("sudo ufw");
-    
+
     // Allow/Deny
     command.push_str(&format!(" {}", rule_type));
-    
+
     // Protocol
     if let Some(proto) = protocol {
         if !proto.is_empty() {
             command.push_str(&format!(" proto {}", proto));
         }
     }
-    
+
     // Port
     if let Some(p) = port {
         if !p.is_empty() {
             command.push_str(&format!(" port {}", p));
         }
     }
-    
+
     // From IP
     if let Some(from) = from_ip {
         if !from.is_empty() && from != "any" {
             command.push_str(&format!(" from {}", from));
         }
     }
-    
+
     // To IP
     if let Some(to) = to_ip {
         if !to.is_empty() && to != "any" {
@@ -837,10 +886,7 @@ pub async fn ufw_set_default(
 }
 
 #[tauri::command]
-pub async fn ufw_set_logging(
-    level: String,
-    state: State<'_, AppState>,
-) -> Result<String, String> {
+pub async fn ufw_set_logging(level: String, state: State<'_, AppState>) -> Result<String, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
@@ -865,23 +911,34 @@ pub async fn get_container_details(
     let inspect_value: serde_json::Value = serde_json::from_str(&inspect_output)
         .map_err(|e| format!("Failed to parse inspect JSON: {}", e))?;
 
-    let container_data = inspect_value.as_array()
+    let container_data = inspect_value
+        .as_array()
         .and_then(|arr| arr.first())
         .ok_or("No container data found")?;
 
     let config = container_data.get("Config").ok_or("No config")?;
     let host_config = container_data.get("HostConfig").ok_or("No host config")?;
-    let network_settings = container_data.get("NetworkSettings").ok_or("No network settings")?;
+    let network_settings = container_data
+        .get("NetworkSettings")
+        .ok_or("No network settings")?;
     let state_data = container_data.get("State").ok_or("No state")?;
 
     // Extract environment variables (filter out sensitive ones)
-    let env_vars: Vec<String> = config.get("Env")
+    let env_vars: Vec<String> = config
+        .get("Env")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter()
-            .filter_map(|v| v.as_str())
-            .filter(|e| !e.contains("PASSWORD") && !e.contains("SECRET") && !e.contains("KEY") && !e.contains("TOKEN"))
-            .map(String::from)
-            .collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str())
+                .filter(|e| {
+                    !e.contains("PASSWORD")
+                        && !e.contains("SECRET")
+                        && !e.contains("KEY")
+                        && !e.contains("TOKEN")
+                })
+                .map(String::from)
+                .collect()
+        })
         .unwrap_or_default();
 
     // Extract ports
@@ -892,10 +949,26 @@ pub async fn get_container_details(
                 for binding in binding_arr {
                     if let Some(obj) = binding.as_object() {
                         ports.push(PortMapping {
-                            host_ip: obj.get("HostIp").and_then(|v| v.as_str()).unwrap_or("0.0.0.0").to_string(),
-                            host_port: obj.get("HostPort").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                            container_port: container_port.split('/').next().unwrap_or("").to_string(),
-                            protocol: container_port.split('/').nth(1).unwrap_or("tcp").to_string(),
+                            host_ip: obj
+                                .get("HostIp")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("0.0.0.0")
+                                .to_string(),
+                            host_port: obj
+                                .get("HostPort")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                            container_port: container_port
+                                .split('/')
+                                .next()
+                                .unwrap_or("")
+                                .to_string(),
+                            protocol: container_port
+                                .split('/')
+                                .nth(1)
+                                .unwrap_or("tcp")
+                                .to_string(),
                         });
                     }
                 }
@@ -904,7 +977,8 @@ pub async fn get_container_details(
     }
 
     // Extract networks
-    let networks: Vec<String> = network_settings.get("Networks")
+    let networks: Vec<String> = network_settings
+        .get("Networks")
         .and_then(|v| v.as_object())
         .map(|obj| obj.keys().cloned().collect())
         .unwrap_or_default();
@@ -914,9 +988,21 @@ pub async fn get_container_details(
     if let Some(mounts) = container_data.get("Mounts").and_then(|v| v.as_array()) {
         for mount in mounts {
             volumes.push(VolumeMount {
-                source: mount.get("Source").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                destination: mount.get("Destination").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                mode: mount.get("Mode").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                source: mount
+                    .get("Source")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                destination: mount
+                    .get("Destination")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                mode: mount
+                    .get("Mode")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
             });
         }
     }
@@ -932,39 +1018,98 @@ pub async fn get_container_details(
         }
     }
 
-    let started_at = state_data.get("StartedAt")
+    let started_at = state_data
+        .get("StartedAt")
         .and_then(|v| v.as_str())
         .map(String::from);
 
     Ok(ContainerDetails {
-        id: container_data.get("Id").and_then(|v| v.as_str()).unwrap_or("").to_string()[..12].to_string(),
-        name: container_data.get("Name").and_then(|v| v.as_str()).unwrap_or("").trim_start_matches('/').to_string(),
-        image: container_data.get("Image").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        state: state_data.get("Status").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        status: container_data.get("State").and_then(|v| v.get("Status")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        created: container_data.get("Created").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        id: container_data
+            .get("Id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()[..12]
+            .to_string(),
+        name: container_data
+            .get("Name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim_start_matches('/')
+            .to_string(),
+        image: container_data
+            .get("Image")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        state: state_data
+            .get("Status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        status: container_data
+            .get("State")
+            .and_then(|v| v.get("Status"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        created: container_data
+            .get("Created")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
         started_at,
         env_vars,
         ports,
         networks,
         volumes,
         labels,
-        command: config.get("Cmd")
+        command: config
+            .get("Cmd")
             .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(" "))
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
             .unwrap_or_default(),
-        working_dir: config.get("WorkingDir").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        user: config.get("User").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        restart_policy: host_config.get("RestartPolicy")
+        working_dir: config
+            .get("WorkingDir")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        user: config
+            .get("User")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        restart_policy: host_config
+            .get("RestartPolicy")
             .and_then(|v| v.get("Name"))
             .and_then(|v| v.as_str())
             .unwrap_or("no")
             .to_string(),
-        memory_limit: host_config.get("Memory").and_then(|v| v.as_u64())
-            .map(|m| if m > 0 { format!("{:.2} GB", m as f64 / 1024.0 / 1024.0 / 1024.0) } else { "Unlimited".to_string() })
+        memory_limit: host_config
+            .get("Memory")
+            .and_then(|v| v.as_u64())
+            .map(|m| {
+                if m > 0 {
+                    format!("{:.2} GB", m as f64 / 1024.0 / 1024.0 / 1024.0)
+                } else {
+                    "Unlimited".to_string()
+                }
+            })
             .unwrap_or("Unlimited".to_string()),
-        cpu_limit: host_config.get("NanoCpus").and_then(|v| v.as_u64())
-            .map(|c| if c > 0 { format!("{:.2} CPUs", c as f64 / 1_000_000_000.0) } else { "Unlimited".to_string() })
+        cpu_limit: host_config
+            .get("NanoCpus")
+            .and_then(|v| v.as_u64())
+            .map(|c| {
+                if c > 0 {
+                    format!("{:.2} CPUs", c as f64 / 1_000_000_000.0)
+                } else {
+                    "Unlimited".to_string()
+                }
+            })
             .unwrap_or("Unlimited".to_string()),
     })
 }
@@ -975,7 +1120,9 @@ pub async fn get_docker_volumes(state: State<'_, AppState>) -> Result<Vec<Docker
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
     let output = client
-        .execute_command("docker volume ls --format '{{.Name}}|{{.Driver}}|{{.Mountpoint}}|{{.Scope}}'")
+        .execute_command(
+            "docker volume ls --format '{{.Name}}|{{.Driver}}|{{.Mountpoint}}|{{.Scope}}'",
+        )
         .map_err(|e| e.message)?;
 
     let mut volumes: Vec<DockerVolume> = Vec::new();
@@ -1057,18 +1204,26 @@ pub async fn get_container_env(
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
     let output = client
-        .execute_command(&format!("docker inspect --format '{{{{json .Config.Env}}}}' {}", container_name))
+        .execute_command(&format!(
+            "docker inspect --format '{{{{json .Config.Env}}}}' {}",
+            container_name
+        ))
         .map_err(|e| e.message)?;
 
-    let env_vars: Vec<String> = serde_json::from_str(&output)
-        .unwrap_or_default();
+    let env_vars: Vec<String> = serde_json::from_str(&output).unwrap_or_default();
 
     if show_secrets {
         Ok(env_vars)
     } else {
         // Filter out sensitive variables
-        Ok(env_vars.into_iter()
-            .filter(|e| !e.contains("PASSWORD") && !e.contains("SECRET") && !e.contains("KEY") && !e.contains("TOKEN"))
+        Ok(env_vars
+            .into_iter()
+            .filter(|e| {
+                !e.contains("PASSWORD")
+                    && !e.contains("SECRET")
+                    && !e.contains("KEY")
+                    && !e.contains("TOKEN")
+            })
             .collect())
     }
 }
@@ -1086,7 +1241,9 @@ pub async fn find_compose_files(state: State<'_, AppState>) -> Result<Vec<Compos
 }
 
 #[tauri::command]
-pub async fn refresh_compose_files(state: State<'_, AppState>) -> Result<Vec<ComposeProject>, String> {
+pub async fn refresh_compose_files(
+    state: State<'_, AppState>,
+) -> Result<Vec<ComposeProject>, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
@@ -1106,7 +1263,10 @@ pub async fn get_container_logs_stream(
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
     let command = if follow {
-        format!("docker logs --tail {} --follow {} 2>&1", lines, container_name)
+        format!(
+            "docker logs --tail {} --follow {} 2>&1",
+            lines, container_name
+        )
     } else {
         format!("docker logs --tail {} {} 2>&1", lines, container_name)
     };
@@ -1144,7 +1304,8 @@ pub async fn get_ufw_overview(state: State<'_, AppState>) -> Result<UfwOverview,
     let mut limit_rules = 0u32;
 
     // Parse listening ports
-    let mut listening_ports_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut listening_ports_map: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
     for line in listening_output.lines() {
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 2 {
@@ -1164,7 +1325,7 @@ pub async fn get_ufw_overview(state: State<'_, AppState>) -> Result<UfwOverview,
 
     for line in lines {
         let line = line.trim();
-        
+
         if line.starts_with("Status:") {
             active = line.contains("active");
         } else if line.starts_with("---") {
@@ -1173,17 +1334,31 @@ pub async fn get_ufw_overview(state: State<'_, AppState>) -> Result<UfwOverview,
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 3 {
                 let rule_str = parts[0].to_string();
-                let action = if parts.len() > 1 { parts[1].to_string() } else { "".to_string() };
-                let from = if parts.len() > 2 { parts[2..].join(" ") } else { "Anywhere".to_string() };
-                
+                let action = if parts.len() > 1 {
+                    parts[1].to_string()
+                } else {
+                    "".to_string()
+                };
+                let from = if parts.len() > 2 {
+                    parts[2..].join(" ")
+                } else {
+                    "Anywhere".to_string()
+                };
+
                 // Extract port and protocol
                 let port_protocol: Vec<&str> = rule_str.split('/').collect();
-                let port = port_protocol.get(0).map(|s| s.to_string()).unwrap_or_default();
-                let protocol = port_protocol.get(1).map(|s| s.to_string()).unwrap_or_else(|| "any".to_string());
-                
+                let port = port_protocol
+                    .get(0)
+                    .map(|s| s.to_string())
+                    .unwrap_or_default();
+                let protocol = port_protocol
+                    .get(1)
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| "any".to_string());
+
                 // Get service name if port is listening
                 let service_name = listening_ports_map.get(&port).cloned();
-                
+
                 let port_info = PortInfo {
                     port: port.clone(),
                     protocol: protocol.clone(),
@@ -1195,7 +1370,8 @@ pub async fn get_ufw_overview(state: State<'_, AppState>) -> Result<UfwOverview,
                 if action.to_uppercase().contains("ALLOW") || action.to_uppercase() == "ALLOW" {
                     open_ports.push(port_info.clone());
                     allow_rules += 1;
-                } else if action.to_uppercase().contains("DENY") || action.to_uppercase() == "DENY" {
+                } else if action.to_uppercase().contains("DENY") || action.to_uppercase() == "DENY"
+                {
                     blocked_ports.push(port_info.clone());
                     deny_rules += 1;
                 } else if action.to_uppercase().contains("LIMIT") {
@@ -1247,12 +1423,14 @@ pub async fn get_listening_ports(state: State<'_, AppState>) -> Result<Vec<PortI
         if parts.len() >= 6 {
             let local_addr = parts[3];
             let process_info = parts[5].trim_matches('"').to_string();
-            
+
             if let Some(port) = local_addr.rsplit(':').next() {
                 if port.chars().all(|c| c.is_numeric()) {
                     // Extract process name
                     let process_name = if process_info.contains("users:") {
-                        process_info.split("users:").nth(1)
+                        process_info
+                            .split("users:")
+                            .nth(1)
                             .and_then(|s| s.split('"').nth(1))
                             .unwrap_or("unknown")
                             .to_string()
@@ -1290,7 +1468,7 @@ pub async fn nginx_status(state: State<'_, AppState>) -> Result<NginxStatus, Str
             .unwrap_or_default()
             .trim()
             .to_string();
-        
+
         if systemctl_check == "active" {
             true
         } else {
@@ -1300,7 +1478,7 @@ pub async fn nginx_status(state: State<'_, AppState>) -> Result<NginxStatus, Str
                 .unwrap_or_default()
                 .trim()
                 .to_string();
-            
+
             if !process_check.is_empty() {
                 true
             } else {
@@ -1355,7 +1533,9 @@ pub async fn nginx_test_config(state: State<'_, AppState>) -> Result<String, Str
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
-    client.execute_command("sudo nginx -t 2>&1").map_err(|e| e.message)
+    client
+        .execute_command("sudo nginx -t 2>&1")
+        .map_err(|e| e.message)
 }
 
 #[tauri::command]
@@ -1363,24 +1543,35 @@ pub async fn get_nginx_config(state: State<'_, AppState>) -> Result<String, Stri
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
-    client.execute_command("cat /etc/nginx/nginx.conf 2>&1").map_err(|e| e.message)
+    client
+        .execute_command("cat /etc/nginx/nginx.conf 2>&1")
+        .map_err(|e| e.message)
 }
 
 #[tauri::command]
-pub async fn save_nginx_config(content: String, state: State<'_, AppState>) -> Result<String, String> {
+pub async fn save_nginx_config(
+    content: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
     // Backup first
-    client.execute_command("sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak 2>&1")
+    client
+        .execute_command("sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak 2>&1")
         .map_err(|e| e.message)?;
 
     // Write new config using tee
-    let write_cmd = format!("echo '{}' | sudo tee /etc/nginx/nginx.conf > /dev/null", content);
+    let write_cmd = format!(
+        "echo '{}' | sudo tee /etc/nginx/nginx.conf > /dev/null",
+        content
+    );
     client.execute_command(&write_cmd).map_err(|e| e.message)?;
 
     // Test config
-    let test_result = client.execute_command("sudo nginx -t 2>&1").map_err(|e| e.message)?;
+    let test_result = client
+        .execute_command("sudo nginx -t 2>&1")
+        .map_err(|e| e.message)?;
 
     if test_result.contains("syntax is ok") && test_result.contains("test is successful") {
         Ok("Config saved and validated. Reload nginx to apply changes.".to_string())
@@ -1424,7 +1615,12 @@ pub async fn get_nginx_vhosts(state: State<'_, AppState>) -> Result<Vec<NginxVho
         let server_name = config
             .lines()
             .find(|l| l.trim().starts_with("server_name"))
-            .map(|l| l.split_whitespace().nth(1).unwrap_or("*").trim_end_matches(';'))
+            .map(|l| {
+                l.split_whitespace()
+                    .nth(1)
+                    .unwrap_or("*")
+                    .trim_end_matches(';')
+            })
             .unwrap_or("*")
             .to_string();
 
@@ -1446,7 +1642,12 @@ pub async fn get_nginx_vhosts(state: State<'_, AppState>) -> Result<Vec<NginxVho
         let root_path = config
             .lines()
             .find(|l| l.trim().starts_with("root"))
-            .map(|l| l.split_whitespace().nth(1).unwrap_or("").trim_end_matches(';'))
+            .map(|l| {
+                l.split_whitespace()
+                    .nth(1)
+                    .unwrap_or("")
+                    .trim_end_matches(';')
+            })
             .unwrap_or("")
             .to_string();
 
@@ -1468,23 +1669,38 @@ pub async fn get_vhost_config(name: String, state: State<'_, AppState>) -> Resul
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
-    client.execute_command(&format!("cat /etc/nginx/sites-available/{}", name)).map_err(|e| e.message)
+    client
+        .execute_command(&format!("cat /etc/nginx/sites-available/{}", name))
+        .map_err(|e| e.message)
 }
 
 #[tauri::command]
-pub async fn save_vhost_config(name: String, content: String, state: State<'_, AppState>) -> Result<String, String> {
+pub async fn save_vhost_config(
+    name: String,
+    content: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
     // Backup first
-    let backup_cmd = format!("sudo cp /etc/nginx/sites-available/{} /etc/nginx/sites-available/{}.bak 2>&1", name, name);
+    let backup_cmd = format!(
+        "sudo cp /etc/nginx/sites-available/{} /etc/nginx/sites-available/{}.bak 2>&1",
+        name, name
+    );
     client.execute_command(&backup_cmd).map_err(|e| e.message)?;
 
     // Write new config
-    let write_cmd = format!("echo '{}' | sudo tee /etc/nginx/sites-available/{} > /dev/null", content, name);
+    let write_cmd = format!(
+        "echo '{}' | sudo tee /etc/nginx/sites-available/{} > /dev/null",
+        content, name
+    );
     client.execute_command(&write_cmd).map_err(|e| e.message)?;
 
-    Ok(format!("Vhost '{}' saved. Reload nginx to apply changes.", name))
+    Ok(format!(
+        "Vhost '{}' saved. Reload nginx to apply changes.",
+        name
+    ))
 }
 
 #[tauri::command]
@@ -1499,9 +1715,13 @@ pub async fn enable_vhost(name: String, state: State<'_, AppState>) -> Result<St
     client.execute_command(&cmd).map_err(|e| e.message)?;
 
     // Test and reload
-    let test = client.execute_command("sudo nginx -t 2>&1").map_err(|e| e.message)?;
+    let test = client
+        .execute_command("sudo nginx -t 2>&1")
+        .map_err(|e| e.message)?;
     if test.contains("syntax is ok") {
-        client.execute_command("sudo systemctl reload nginx 2>&1").map_err(|e| e.message)?;
+        client
+            .execute_command("sudo systemctl reload nginx 2>&1")
+            .map_err(|e| e.message)?;
         Ok(format!("Vhost '{}' enabled and nginx reloaded.", name))
     } else {
         Err(format!("Vhost enabled but config test failed: {}", test))
@@ -1515,7 +1735,9 @@ pub async fn disable_vhost(name: String, state: State<'_, AppState>) -> Result<S
 
     let cmd = format!("sudo rm -f /etc/nginx/sites-enabled/{} 2>&1", name);
     client.execute_command(&cmd).map_err(|e| e.message)?;
-    client.execute_command("sudo systemctl reload nginx 2>&1").map_err(|e| e.message)?;
+    client
+        .execute_command("sudo systemctl reload nginx 2>&1")
+        .map_err(|e| e.message)?;
 
     Ok(format!("Vhost '{}' disabled and nginx reloaded.", name))
 }
@@ -1526,14 +1748,28 @@ pub async fn delete_vhost(name: String, state: State<'_, AppState>) -> Result<St
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
     // Remove from both available and enabled
-    client.execute_command(&format!("sudo rm -f /etc/nginx/sites-available/{} 2>&1", name)).map_err(|e| e.message)?;
-    client.execute_command(&format!("sudo rm -f /etc/nginx/sites-enabled/{} 2>&1", name)).map_err(|e| e.message)?;
+    client
+        .execute_command(&format!(
+            "sudo rm -f /etc/nginx/sites-available/{} 2>&1",
+            name
+        ))
+        .map_err(|e| e.message)?;
+    client
+        .execute_command(&format!(
+            "sudo rm -f /etc/nginx/sites-enabled/{} 2>&1",
+            name
+        ))
+        .map_err(|e| e.message)?;
 
     Ok(format!("Vhost '{}' deleted.", name))
 }
 
 #[tauri::command]
-pub async fn get_nginx_logs(log_type: String, lines: u32, state: State<'_, AppState>) -> Result<String, String> {
+pub async fn get_nginx_logs(
+    log_type: String,
+    lines: u32,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
@@ -1543,7 +1779,9 @@ pub async fn get_nginx_logs(log_type: String, lines: u32, state: State<'_, AppSt
         _ => "/var/log/nginx/error.log",
     };
 
-    client.execute_command(&format!("tail -n {} {} 2>&1", lines, log_path)).map_err(|e| e.message)
+    client
+        .execute_command(&format!("tail -n {} {} 2>&1", lines, log_path))
+        .map_err(|e| e.message)
 }
 
 // ==================== CRON COMMANDS ====================
@@ -1553,11 +1791,16 @@ pub async fn get_user_crontab(state: State<'_, AppState>) -> Result<String, Stri
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
-    client.execute_command("crontab -l 2>&1").map_err(|e| e.message)
+    client
+        .execute_command("crontab -l 2>&1")
+        .map_err(|e| e.message)
 }
 
 #[tauri::command]
-pub async fn save_user_crontab(content: String, state: State<'_, AppState>) -> Result<String, String> {
+pub async fn save_user_crontab(
+    content: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
@@ -1571,7 +1814,9 @@ pub async fn get_system_crontab(state: State<'_, AppState>) -> Result<String, St
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
-    client.execute_command("cat /etc/crontab 2>&1").map_err(|e| e.message)
+    client
+        .execute_command("cat /etc/crontab 2>&1")
+        .map_err(|e| e.message)
 }
 
 #[tauri::command]
@@ -1597,7 +1842,11 @@ pub async fn get_cron_d_jobs(state: State<'_, AppState>) -> Result<Vec<CronJob>,
 
         for (idx, line) in content.lines().enumerate() {
             let trimmed = line.trim();
-            if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with("SHELL=") || trimmed.starts_with("PATH=") {
+            if trimmed.is_empty()
+                || trimmed.starts_with('#')
+                || trimmed.starts_with("SHELL=")
+                || trimmed.starts_with("PATH=")
+            {
                 continue;
             }
 
@@ -1673,16 +1922,24 @@ pub async fn get_cron_logs(lines: u32, state: State<'_, AppState>) -> Result<Str
     }
 
     // Fallback: try journalctl
-    client.execute_command(&format!("journalctl -u cron -n {} --no-pager 2>&1", lines)).map_err(|e| e.message)
+    client
+        .execute_command(&format!("journalctl -u cron -n {} --no-pager 2>&1", lines))
+        .map_err(|e| e.message)
 }
 
 #[tauri::command]
-pub async fn add_cron_job(schedule: String, command: String, state: State<'_, AppState>) -> Result<String, String> {
+pub async fn add_cron_job(
+    schedule: String,
+    command: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
     // Get current crontab
-    let current = client.execute_command("crontab -l 2>&1").unwrap_or_default();
+    let current = client
+        .execute_command("crontab -l 2>&1")
+        .unwrap_or_default();
 
     // Add new job
     let new_entry = format!("{} {}", schedule, command);
@@ -1698,12 +1955,17 @@ pub async fn add_cron_job(schedule: String, command: String, state: State<'_, Ap
 }
 
 #[tauri::command]
-pub async fn delete_cron_job(line_number: usize, state: State<'_, AppState>) -> Result<String, String> {
+pub async fn delete_cron_job(
+    line_number: usize,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
     // Get current crontab and remove line
-    let current = client.execute_command("crontab -l 2>&1").unwrap_or_default();
+    let current = client
+        .execute_command("crontab -l 2>&1")
+        .unwrap_or_default();
 
     if current.contains("command not found") {
         return Err("No crontab found".to_string());
@@ -1722,11 +1984,17 @@ pub async fn delete_cron_job(line_number: usize, state: State<'_, AppState>) -> 
 }
 
 #[tauri::command]
-pub async fn toggle_cron_job(line_number: usize, enabled: bool, state: State<'_, AppState>) -> Result<String, String> {
+pub async fn toggle_cron_job(
+    line_number: usize,
+    enabled: bool,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     let ssh_client = state.ssh_client.lock().await;
     let client = ssh_client.as_ref().ok_or("Not connected")?;
 
-    let current = client.execute_command("crontab -l 2>&1").unwrap_or_default();
+    let current = client
+        .execute_command("crontab -l 2>&1")
+        .unwrap_or_default();
 
     if current.contains("command not found") {
         return Err("No crontab found".to_string());

@@ -39,8 +39,27 @@ const Dashboard = memo(function Dashboard() {
 
   useEffect(() => {
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 5000);
-    return () => clearInterval(interval);
+    
+    // Start polling interval
+    let interval = setInterval(fetchMetrics, 5000);
+    
+    // Visibility API - pause fetching when tab is hidden
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        clearInterval(interval);
+      } else {
+        // Tab is visible again - fetch immediately and restart interval
+        fetchMetrics();
+        interval = setInterval(fetchMetrics, 5000);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [fetchMetrics]);
 
   const formatBytes = (bytes: number, decimals = 1) => {
